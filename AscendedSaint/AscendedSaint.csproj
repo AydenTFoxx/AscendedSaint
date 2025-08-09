@@ -1,0 +1,49 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net48</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Reference Include="Assembly-CSharp">
+        <HintPath>..\..\RW_Deps\BepInEx\utils\PUBLIC-Assembly-CSharp.dll</HintPath>
+      </Reference>
+      <Reference Include="BepInEx">
+        <HintPath>..\..\RW_Deps\BepInEx\core\BepInEx.dll</HintPath>
+      </Reference>
+      <Reference Include="HOOKS-Assembly-CSharp">
+        <HintPath>..\..\RW_Deps\BepInEx\plugins\HOOKS-Assembly-CSharp.dll</HintPath>
+      </Reference>
+      <Reference Include="Mono.Cecil">
+        <HintPath>..\..\RW_Deps\RainWorld_Data\Managed\Mono.Cecil.dll</HintPath>
+      </Reference>
+      <Reference Include="Mono.Cecil.Mdb">
+        <HintPath>..\..\RW_Deps\RainWorld_Data\Managed\Mono.Cecil.Mdb.dll</HintPath>
+      </Reference>
+      <Reference Include="Mono.Cecil.Pdb">
+        <HintPath>..\..\RW_Deps\RainWorld_Data\Managed\Mono.Cecil.Pdb.dll</HintPath>
+      </Reference>
+      <Reference Include="Mono.Cecil.Rocks">
+        <HintPath>..\..\RW_Deps\RainWorld_Data\Managed\Mono.Cecil.Rocks.dll</HintPath>
+      </Reference>
+      <Reference Include="MonoMod.Common">
+        <HintPath>..\..\RW_Deps\RainWorld_Data\Managed\MonoMod.Common.dll</HintPath>
+      </Reference>
+      <Reference Include="MonoMod.RuntimeDetour">
+        <HintPath>..\..\RW_Deps\RainWorld_Data\Managed\MonoMod.RuntimeDetour.dll</HintPath>
+      </Reference>
+      <Reference Include="MonoMod.Utils">
+        <HintPath>..\..\RW_Deps\RainWorld_Data\Managed\MonoMod.Utils.dll</HintPath>
+      </Reference>
+      <Reference Include="RainMeadow">
+        <HintPath>..\..\RW_Deps\Meadow\RainMeadow.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine">
+        <HintPath>..\..\RW_Deps\RainWorld_Data\Managed\UnityEngine.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.CoreModule">
+        <HintPath>..\..\RW_Deps\RainWorld_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+</Project>
