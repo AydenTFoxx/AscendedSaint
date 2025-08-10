@@ -3,23 +3,48 @@ using MoreSlugcats;
 using RWCustom;
 using UnityEngine;
 
-namespace AscendedSaint
+namespace AscendedSaint.Ascension
 {
     /// <summary>
-    /// A collection of utility functions used throughout the Ascended Saint mod.
+    /// A collection of utility functions for Saint's new Ascension-related abilities.
     /// </summary>
-    public static class ASUtils
+    public class ASUtils
     {
+        /// <summary>
+        /// Attempts to cast a given object to a type from another mod, without breaking this one.
+        /// </summary>
+        /// <typeparam name="T">The external type to be returned.</typeparam>
+        /// <param name="obj">The object to be casted to <paramref name="obj"/>.</param>
+        /// <returns>Either <paramref name="obj"/> cast to <typeparamref name="T"/>, or <typeparamref name="T"/>'s default value if the conversion fails.</returns>
+        public static T CastToModdedType<T>(object obj)
+        {
+            T result = default;
+
+            try
+            {
+                result = (T)obj;
+            }
+            catch (System.InvalidCastException ex)
+            {
+                Debug.LogErrorFormat($"{nameof(obj)} should be a boxed {nameof(T)} object.", ex);
+            }
+
+            return result;
+        }
+
         /// <summary>
         /// Ascends or returns a creature back from life, depending on whether it was dead beforehand.
         /// </summary>
         /// <param name="creature">The creature to be ascended or revived.</param>
-        public static void AscendCreature(Creature creature)
+        /// <returns><c>true</c> if the creature was successfully modified, <c>false</c> otherwise.</returns>
+        public static bool AscendCreature(Creature creature)
         {
             Room room = creature.room;
             Vector2 pos = creature.mainBodyChunk.pos;
 
             float revivalHealthFactor = ASOptions.REVIVAL_HEALTH_FACTOR.Value * 0.01f;
+
+            bool didPerformAscension = false;
 
             if (creature.dead)
             {
@@ -31,7 +56,14 @@ namespace AscendedSaint
                 room.PlaySound(SoundID.Firecracker_Bang, creature.mainBodyChunk, loop: false, 1f, 0.5f + Random.value);
                 room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, creature.mainBodyChunk, loop: false, 1f, 1.25f + Random.value * 1.25f);
 
-                ReviveCreature(creature, revivalHealthFactor);
+                if (AscendedSaintMain.IsMeadowEnabled())
+                {
+                    didPerformAscension = true;
+                }
+                else
+                {
+                    ReviveCreature(creature, revivalHealthFactor);
+                }
 
                 creature.Stun(120);
 
@@ -44,17 +76,24 @@ namespace AscendedSaint
                 room.AddObject(new ShockWave(pos, 150f, 0.25f, 20));
 
                 creature.Die();
+
+                didPerformAscension = true;
             }
+
+            return didPerformAscension;
         }
 
         /// <summary>
         /// Attempts to revive a given physical object if it is an <c>Oracle</c>. Otherwise, attempts to ascend or revive this same object if it is a <c>Creature</c> instead.
         /// </summary>
         /// <param name="physicalObject">The object instance to be revived.</param>
-        public static void AscendCreature(PhysicalObject physicalObject)
+        /// <returns><c>true</c> if the object was successfully modified, <c>false</c> otherwise.</returns>
+        public static bool AscendCreature(PhysicalObject physicalObject)
         {
             Room room = physicalObject.room;
             BodyChunk mainBodyChunk = physicalObject.bodyChunks[0];
+
+            bool didPerformAscension = false;
 
             if (physicalObject is Oracle oracle)
             {
@@ -67,15 +106,19 @@ namespace AscendedSaint
                 room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, mainBodyChunk, loop: false, 1f, 0.5f + Random.value * 0.5f);
 
                 ReviveOracle(oracle);
+
+                didPerformAscension = true;
             }
             else if (physicalObject is Creature)
             {
-                AscendCreature(physicalObject as Creature);
+                didPerformAscension = AscendCreature(physicalObject as Creature);
             }
             else
             {
                 Debug.LogWarning("Cannot ascend or revive this! " + physicalObject.ToString());
             }
+
+            return didPerformAscension;
         }
 
         /// <summary>
@@ -133,16 +176,14 @@ namespace AscendedSaint
         /// Removes a given creature from the world's <c>respawnCreatures</c> list.
         /// </summary>
         /// <param name="creature">The creature to be removed.</param>
-        private static void RemoveFromRespawnsList(Creature creature)
+        protected static void RemoveFromRespawnsList(Creature creature)
         {
-            Room room = creature.room;
-
             CreatureState state = creature.abstractCreature.state;
             EntityID ID = creature.abstractCreature.ID;
 
-            if (state.alive && ID.spawner >= 0 && room.world.game.session is StoryGameSession)
+            if (state.alive && ID.spawner >= 0 && creature.room.game.session is StoryGameSession storySession)
             {
-                (room.world.game.session as StoryGameSession).saveState.respawnCreatures.Remove(ID.spawner);
+                storySession.saveState.respawnCreatures.Remove(ID.spawner);
             }
         }
 
@@ -151,7 +192,7 @@ namespace AscendedSaint
         /// </summary>
         /// <param name="creature">The  creature to be revived.</param>
         /// <param name="health">The health to be restored for the newly revived creature. Slugcats ignore this setting and are always restored to full health instead.</param>
-        private static void ReviveCreature(Creature creature, float health = 1f)
+        protected static void ReviveCreature(Creature creature, float health = 1f)
         {
             AbstractCreature abstractCreature = creature.abstractCreature;
 
@@ -183,7 +224,7 @@ namespace AscendedSaint
         /// </summary>
         /// <param name="oracle">The iterator to de-ascend.</param>
         /// <remarks>But why would you?</remarks>
-        private static void ReviveOracle(Oracle oracle)
+        protected static void ReviveOracle(Oracle oracle)
         {
             Room room = oracle.room;
 
@@ -233,7 +274,7 @@ namespace AscendedSaint
         /// </summary>
         /// <param name="oracle">The iterator this neuron is being created for.</param>
         /// <returns>The new realized <c>SLOracleSwarmer</c> object.</returns>
-        private static SLOracleSwarmer CreateSLOracleSwarmer(Oracle oracle)
+        protected static SLOracleSwarmer CreateSLOracleSwarmer(Oracle oracle)
         {
             World world = oracle.room.world;
 
@@ -255,6 +296,17 @@ namespace AscendedSaint
             }
 
             return abstractSwarmer.realizedObject as SLOracleSwarmer;
+        }
+
+        /// <summary>
+        /// Base class for implementing hooks to Saint's <c>ClassMechanicsSaint</c> method.
+        /// </summary>
+        public abstract class SaintMechanicsHook
+        {
+            // Lowering this value makes it harder to target creatures (especially lizards) in-game.
+            protected float karmicBurstRadius = 40f;
+
+            public abstract void ClassMechanicsSaintHook(On.Player.orig_ClassMechanicsSaint orig, Player self);
         }
     }
 }
