@@ -2,34 +2,32 @@ using System.Collections.Generic;
 using MoreSlugcats;
 using RWCustom;
 using UnityEngine;
+using static AscendedSaint.AscendedSaintMain.Utils;
 
-namespace AscendedSaint.Ascension
+namespace AscendedSaint.Attunement
 {
     /// <summary>
     /// A collection of utility functions for Saint's new Ascension-related abilities.
     /// </summary>
-    public class ASUtils
+    public static class ASUtils
     {
         /// <summary>
-        /// Attempts to cast a given object to a type from another mod, without breaking this one.
+        /// The performed action on the given creature after applying the Ascension ability.
         /// </summary>
-        /// <typeparam name="T">The external type to be returned.</typeparam>
-        /// <param name="obj">The object to be casted to <paramref name="obj"/>.</param>
-        /// <returns>Either <paramref name="obj"/> cast to <typeparamref name="T"/>, or <typeparamref name="T"/>'s default value if the conversion fails.</returns>
-        public static T CastToModdedType<T>(object obj)
+        public enum AscensionResult
         {
-            T result = default;
-
-            try
-            {
-                result = (T)obj;
-            }
-            catch (System.InvalidCastException ex)
-            {
-                Debug.LogErrorFormat($"{nameof(obj)} should be a boxed {nameof(T)} object.", ex);
-            }
-
-            return result;
+            /// <summary>
+            /// The creature was ascended. This is only used for when the player ascends themselves.
+            /// </summary>
+            Ascended,
+            /// <summary>
+            /// The creature was revived. Used if the creature was previously dead and the player has now revived it.
+            /// </summary>
+            Revived,
+            /// <summary>
+            /// The creature was ignored; No operation was performed.
+            /// </summary>
+            Ignored
         }
 
         /// <summary>
@@ -37,18 +35,18 @@ namespace AscendedSaint.Ascension
         /// </summary>
         /// <param name="creature">The creature to be ascended or revived.</param>
         /// <returns><c>true</c> if the creature was successfully modified, <c>false</c> otherwise.</returns>
-        public static bool AscendCreature(Creature creature)
+        public static AscensionResult AscendCreature(Creature creature)
         {
-            Room room = creature.room;
+            AscensionResult ascensionResult;
+
             Vector2 pos = creature.mainBodyChunk.pos;
+            Room room = creature.room;
 
             float revivalHealthFactor = ASOptions.REVIVAL_HEALTH_FACTOR.Value * 0.01f;
 
-            bool didPerformAscension = false;
-
             if (creature.dead)
             {
-                Debug.Log("Return! " + creature.Template.name);
+                Debug.Log("[AS] Return! " + creature.Template.name);
 
                 room.AddObject(new ShockWave(pos, 200f, 0.5f, 30));
                 room.AddObject(new Explosion.ExplosionLight(pos, 320f, 1f, 5, Color.white));
@@ -56,31 +54,36 @@ namespace AscendedSaint.Ascension
                 room.PlaySound(SoundID.Firecracker_Bang, creature.mainBodyChunk, loop: false, 1f, 0.5f + Random.value);
                 room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, creature.mainBodyChunk, loop: false, 1f, 1.25f + Random.value * 1.25f);
 
-                if (AscendedSaintMain.IsMeadowEnabled())
+                ReviveCreature(creature, revivalHealthFactor);
+
+                if (IsOnlineMultiplayerSession())
                 {
-                    didPerformAscension = true;
-                }
-                else
-                {
-                    ReviveCreature(creature, revivalHealthFactor);
+                    foreach (RainMeadow.OnlinePlayer onlinePlayer in RainMeadow.OnlineManager.players)
+                    {
+                        if (onlinePlayer.isMe) continue;
+
+                        onlinePlayer.InvokeRPC(typeof(ASMeadowUtils.ASRPCs).GetMethod("UpdateRevivedCreature").CreateDelegate(typeof(System.Action<RainMeadow.RPCEvent, PhysicalObject>)), creature);
+                    }
                 }
 
                 creature.Stun(120);
 
                 if (!(creature is Player)) RemoveFromRespawnsList(creature);
+
+                ascensionResult = AscensionResult.Revived;
             }
             else
             {
-                Debug.Log("Ascend! " + creature.Template.name);
+                Debug.Log("[AS] Ascend! " + creature.Template.name);
 
                 room.AddObject(new ShockWave(pos, 150f, 0.25f, 20));
 
                 creature.Die();
 
-                didPerformAscension = true;
+                ascensionResult = AscensionResult.Ascended;
             }
 
-            return didPerformAscension;
+            return ascensionResult;
         }
 
         /// <summary>
@@ -88,16 +91,16 @@ namespace AscendedSaint.Ascension
         /// </summary>
         /// <param name="physicalObject">The object instance to be revived.</param>
         /// <returns><c>true</c> if the object was successfully modified, <c>false</c> otherwise.</returns>
-        public static bool AscendCreature(PhysicalObject physicalObject)
+        public static AscensionResult AscendCreature(PhysicalObject physicalObject)
         {
+            AscensionResult ascensionResult = AscensionResult.Ignored;
+
             Room room = physicalObject.room;
             BodyChunk mainBodyChunk = physicalObject.bodyChunks[0];
 
-            bool didPerformAscension = false;
-
             if (physicalObject is Oracle oracle)
             {
-                Debug.Log("Return, Iterator! " + oracle.ID);
+                Debug.Log("[AS] Return, Iterator! " + oracle.ID);
 
                 room.AddObject(new ShockWave(mainBodyChunk.pos, 350f, 0.75f, 24));
                 room.AddObject(new Explosion.ExplosionLight(mainBodyChunk.pos, 320f, 1f, 5, Color.white));
@@ -107,18 +110,28 @@ namespace AscendedSaint.Ascension
 
                 ReviveOracle(oracle);
 
-                didPerformAscension = true;
+                if (IsOnlineMultiplayerSession())
+                {
+                    foreach (RainMeadow.OnlinePlayer onlinePlayer in RainMeadow.OnlineManager.players)
+                    {
+                        if (onlinePlayer.isMe) continue;
+
+                        onlinePlayer.InvokeRPC(typeof(ASMeadowUtils.ASRPCs).GetMethod("UpdateRevivedCreature").CreateDelegate(typeof(System.Action<RainMeadow.RPCEvent, PhysicalObject>)), oracle);
+                    }
+                }
+
+                ascensionResult = AscensionResult.Revived;
             }
             else if (physicalObject is Creature)
             {
-                didPerformAscension = AscendCreature(physicalObject as Creature);
+                ascensionResult = AscendCreature(physicalObject as Creature);
             }
             else
             {
-                Debug.LogWarning("Cannot ascend or revive this! " + physicalObject.ToString());
+                Debug.LogWarning("[AS] Cannot ascend or revive this! " + physicalObject.ToString());
             }
 
-            return didPerformAscension;
+            return ascensionResult;
         }
 
         /// <summary>
@@ -176,7 +189,7 @@ namespace AscendedSaint.Ascension
         /// Removes a given creature from the world's <c>respawnCreatures</c> list.
         /// </summary>
         /// <param name="creature">The creature to be removed.</param>
-        protected static void RemoveFromRespawnsList(Creature creature)
+        internal static void RemoveFromRespawnsList(Creature creature)
         {
             CreatureState state = creature.abstractCreature.state;
             EntityID ID = creature.abstractCreature.ID;
@@ -192,7 +205,7 @@ namespace AscendedSaint.Ascension
         /// </summary>
         /// <param name="creature">The  creature to be revived.</param>
         /// <param name="health">The health to be restored for the newly revived creature. Slugcats ignore this setting and are always restored to full health instead.</param>
-        protected static void ReviveCreature(Creature creature, float health = 1f)
+        internal static void ReviveCreature(Creature creature, float health = 1f)
         {
             AbstractCreature abstractCreature = creature.abstractCreature;
 
@@ -224,7 +237,7 @@ namespace AscendedSaint.Ascension
         /// </summary>
         /// <param name="oracle">The iterator to de-ascend.</param>
         /// <remarks>But why would you?</remarks>
-        protected static void ReviveOracle(Oracle oracle)
+        internal static void ReviveOracle(Oracle oracle)
         {
             Room room = oracle.room;
 
@@ -274,7 +287,7 @@ namespace AscendedSaint.Ascension
         /// </summary>
         /// <param name="oracle">The iterator this neuron is being created for.</param>
         /// <returns>The new realized <c>SLOracleSwarmer</c> object.</returns>
-        protected static SLOracleSwarmer CreateSLOracleSwarmer(Oracle oracle)
+        private static SLOracleSwarmer CreateSLOracleSwarmer(Oracle oracle)
         {
             World world = oracle.room.world;
 
@@ -296,17 +309,6 @@ namespace AscendedSaint.Ascension
             }
 
             return abstractSwarmer.realizedObject as SLOracleSwarmer;
-        }
-
-        /// <summary>
-        /// Base class for implementing hooks to Saint's <c>ClassMechanicsSaint</c> method.
-        /// </summary>
-        public abstract class SaintMechanicsHook
-        {
-            // Lowering this value makes it harder to target creatures (especially lizards) in-game.
-            protected float karmicBurstRadius = 40f;
-
-            public abstract void ClassMechanicsSaintHook(On.Player.orig_ClassMechanicsSaint orig, Player self);
         }
     }
 }

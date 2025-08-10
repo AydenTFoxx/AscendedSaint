@@ -8,6 +8,22 @@ namespace AscendedSaint
     /// </summary>
     public class ASOptions : OptionInterface
     {
+        public class SharedOptions
+        {
+            public bool allowSelfAscension;
+            public bool allowRevival;
+            public bool requireKarmaFlower;
+            public float revivalHealthFactor;
+
+            public SharedOptions()
+            {
+                allowSelfAscension = ALLOW_SELF_ASCENSION.Value;
+                allowRevival = ALLOW_REVIVAL.Value;
+                requireKarmaFlower = REQUIRE_KARMA_FLOWER.Value;
+                revivalHealthFactor = REVIVAL_HEALTH_FACTOR.Value * 0.01f;
+            }
+        }
+
         public static Configurable<bool> ALLOW_SELF_ASCENSION;
         public static Configurable<bool> ALLOW_REVIVAL;
         public static Configurable<bool> REQUIRE_KARMA_FLOWER;

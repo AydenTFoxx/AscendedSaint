@@ -3,16 +3,17 @@ using MoreSlugcats;
 using RWCustom;
 using UnityEngine;
 
-namespace AscendedSaint.Ascension
+namespace AscendedSaint.Attunement
 {
     /// <summary>
-    /// The default, vanilla implementation for Saint's new abilities.
+    /// All hooks relating to Saint's unique abilities.
     /// </summary>
-    /// <remarks>This variant is automatically overriden to ensure compatibility with supported mods.</remarks>
-    /// <seealso cref="MeadowSaintMechanicsHook"/>
-    public class VanillaSaintMechanicsHook : ASUtils.SaintMechanicsHook
+    public static class SaintMechanicsHooks
     {
-        public override void ClassMechanicsSaintHook(On.Player.orig_ClassMechanicsSaint orig, Player self)
+        private static readonly ASOptions.SharedOptions clientOptions = AscendedSaintMain.instance.clientOptions;
+        private const float KARMIC_BURST_RADIUS = 60f;
+
+        public static void ClassMechanicsSaintHook(On.Player.orig_ClassMechanicsSaint orig, Player self)
         {
             if (self.SlugCatClass != MoreSlugcatsEnums.SlugcatStatsName.Saint ||
                 !self.monkAscension || (self.killFac + 0.025f) < 1f)
@@ -40,7 +41,7 @@ namespace AscendedSaint.Ascension
 
                     foreach (BodyChunk bodyChunk in physicalObject.bodyChunks)
                     {
-                        if (!Custom.DistLess(bodyChunk.pos, vector2, karmicBurstRadius + bodyChunk.rad) ||
+                        if (!Custom.DistLess(bodyChunk.pos, vector2, KARMIC_BURST_RADIUS + bodyChunk.rad) ||
                             !self.room.VisualContact(bodyChunk.pos, vector2)) continue;
 
                         shouldAscendCreature = true;
@@ -52,11 +53,11 @@ namespace AscendedSaint.Ascension
 
                     if (!shouldAscendCreature) continue;
 
-                    if (ASUtils.CanReviveCreature(physicalObject) && ASOptions.ALLOW_REVIVAL.Value)
+                    if (ASUtils.CanReviveCreature(physicalObject) && clientOptions.allowRevival)
                     {
-                        Debug.Log("Attempting to revive: " + physicalObject);
+                        Debug.Log("[AS] Attempting to revive: " + physicalObject);
 
-                        if (ASOptions.REQUIRE_KARMA_FLOWER.Value)
+                        if (clientOptions.requireKarmaFlower)
                         {
                             PhysicalObject karmaFlower = ASUtils.GetHeldKarmaFlower(self);
 
@@ -74,9 +75,9 @@ namespace AscendedSaint.Ascension
 
                         return;
                     }
-                    else if (physicalObject == self && ASOptions.ALLOW_SELF_ASCENSION.Value)
+                    else if (physicalObject == self && clientOptions.allowSelfAscension)
                     {
-                        Debug.Log("Attempting to ascend: " + self.SlugCatClass);
+                        Debug.Log("[AS] Attempting to ascend: " + self.SlugCatClass);
 
                         ASUtils.AscendCreature(physicalObject as Player);
 
