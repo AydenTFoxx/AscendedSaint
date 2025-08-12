@@ -21,7 +21,7 @@ namespace AscendedSaint
         private static bool isInitialized = false;
         private static ASOptions options;
 
-        internal static ASOptions.ClientOptions clientOptions;
+        public static ASOptions.ClientOptions ClientOptions { get; set; }
 
         public void OnEnable()
         {
@@ -30,7 +30,7 @@ namespace AscendedSaint
             isInitialized = true;
 
             options = new ASOptions();
-            clientOptions = new ASOptions.ClientOptions();
+            ClientOptions = new ASOptions.ClientOptions();
 
             On.RainWorld.OnModsInit += OnModsInitHook;
             On.RainWorld.PostModsInit += PostModsInitHook;
@@ -49,7 +49,7 @@ namespace AscendedSaint
             On.RainWorld.OnModsInit -= OnModsInitHook;
             On.RainWorld.PostModsInit -= PostModsInitHook;
 
-            On.GameSession.ctor -= VanillaGameSessionHook;
+            On.GameSession.ctor -= DefaultGameSessionHook;
 
             if (Utils.IsMeadowEnabled())
             {
@@ -84,16 +84,18 @@ namespace AscendedSaint
                 ASMeadowUtils.ApplyMeadowHooks();
             }
 
-            On.GameSession.ctor += VanillaGameSessionHook;
+            On.GameSession.ctor += DefaultGameSessionHook;
 
             orig.Invoke(self);
         }
 
-        internal static void VanillaGameSessionHook(On.GameSession.orig_ctor orig, GameSession self, RainWorldGame game)
+        internal static void DefaultGameSessionHook(On.GameSession.orig_ctor orig, GameSession self, RainWorldGame game)
         {
-            clientOptions.RefreshOptions();
-
             orig.Invoke(self, game);
+
+            ClientOptions.RefreshOptions();
+
+            ASLogger.LogDebug($"Client options are: {ClientOptions.ToString()}");
         }
 
         /// <summary>
@@ -103,24 +105,6 @@ namespace AscendedSaint
         {
             private static bool isMeadowEnabled = false;
             private static bool cachedMeadowCheck = false;
-
-            /// <summary>
-            /// Obtains the client's currently active settings for this mod.
-            /// </summary>
-            /// <returns>A <c>ClientOptions</c> object with the client's current settings.</returns>
-            public static ASOptions.ClientOptions GetClientOptions()
-            {
-                return clientOptions;
-            }
-
-            /// <summary>
-            /// Sets the client's settings to the given <c>ClientOptions</c> object.
-            /// </summary>
-            /// <param name="newOptions">The new options object.</param>
-            public static void SetClientOptions(ASOptions.ClientOptions newOptions)
-            {
-                clientOptions = newOptions;
-            }
 
             /// <summary>
             /// Determines whether the Rain Meadow mod is enabled.

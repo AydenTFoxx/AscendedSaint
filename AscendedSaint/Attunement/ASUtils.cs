@@ -11,7 +11,7 @@ namespace AscendedSaint.Attunement
     /// </summary>
     public static class ASUtils
     {
-        private static ASOptions.ClientOptions ClientOptions => GetClientOptions();
+        private static readonly ASOptions.ClientOptions ClientOptions = AscendedSaintMain.ClientOptions;
 
         /// <summary>
         /// Ascends or returns a creature back from life, depending on whether it was dead beforehand.
@@ -201,8 +201,6 @@ namespace AscendedSaint.Attunement
         /// <remarks>But why would you?</remarks>
         internal static void ReviveOracle(Oracle oracle)
         {
-            // NOTE: FP works fine. LttM is revived but remains unconscious.
-
             Room room = oracle.room;
 
             if (!(room.game.session is StoryGameSession storyGame)) return;

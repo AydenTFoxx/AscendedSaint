@@ -80,7 +80,7 @@ namespace AscendedSaint
         /// <remarks>Note: This uses a custom format for including exception and stack trace, and should be preferred when handling errors.</remarks>
         public static void LogError(string message, Exception exception)
         {
-            Log(LogLevel.Error, $"{message}{Environment.NewLine}-- Exception:{Environment.NewLine}{exception}{Environment.NewLine}-- Stack trace:{Environment.NewLine}{Environment.StackTrace}");
+            Log(LogLevel.Error, $"{message}{Environment.NewLine}-- Exception:{Environment.NewLine}{exception}{Environment.NewLine}-- Stack trace:{Environment.NewLine}{exception.StackTrace}");
 
             UnityEngine.Debug.LogError(FormatMessage($"{message} (See details at log file)", LogLevel.Error, addNewLine: false, addDateTime: false));
         }
@@ -116,7 +116,7 @@ namespace AscendedSaint
         /// <returns>A new formatted <c>String</c> object ready to be logged.</returns>
         private static string FormatMessage(string message, LogLevel logLevel, bool addNewLine = true, bool addDateTime = true)
         {
-            return $"{(addDateTime ? GetDateTime() : "")} [{BuildLogPrefix("AS", IsMeadowEnabled())}: {logLevel}] {message}{(addNewLine ? Environment.NewLine : "")}".Trim();
+            return $"{(addDateTime ? GetDateTime() : "")} [{BuildLogPrefix("AS", IsMeadowEnabled())}: {logLevel}] {message}".Trim() + (addNewLine ? Environment.NewLine : "");
         }
 
         /// <summary>

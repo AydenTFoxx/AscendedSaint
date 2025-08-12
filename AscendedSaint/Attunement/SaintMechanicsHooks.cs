@@ -10,7 +10,7 @@ namespace AscendedSaint.Attunement
     /// </summary>
     public static class SaintMechanicsHooks
     {
-        private static ASOptions.ClientOptions ClientOptions => AscendedSaintMain.Utils.GetClientOptions();
+        private static readonly ASOptions.ClientOptions ClientOptions = AscendedSaintMain.ClientOptions;
         private const float KARMIC_BURST_RADIUS = 60f;
 
         public static void ClassMechanicsSaintHook(On.Player.orig_ClassMechanicsSaint orig, Player self)
@@ -55,7 +55,7 @@ namespace AscendedSaint.Attunement
 
                     if (ASUtils.CanReviveCreature(physicalObject) && ClientOptions.allowRevival)
                     {
-                        ASLogger.LogInfo("Attempting to revive: " + physicalObject);
+                        ASLogger.LogDebug("Attempting to revive: " + physicalObject);
 
                         if (ClientOptions.requireKarmaFlower)
                         {
@@ -79,7 +79,7 @@ namespace AscendedSaint.Attunement
                     }
                     else if (physicalObject == self && ClientOptions.allowSelfAscension)
                     {
-                        ASLogger.LogInfo("Attempting to ascend: " + self.SlugCatClass);
+                        ASLogger.LogDebug("Attempting to ascend: " + self.SlugCatClass);
 
                         ASUtils.AscendCreature(physicalObject as Player);
 

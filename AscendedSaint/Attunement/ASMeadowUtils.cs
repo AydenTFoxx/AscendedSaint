@@ -1,7 +1,6 @@
 using RainMeadow;
 using System;
 using static AscendedSaint.Attunement.ASUtils;
-using static AscendedSaint.AscendedSaintMain.Utils;
 
 namespace AscendedSaint.Attunement
 {
@@ -10,7 +9,7 @@ namespace AscendedSaint.Attunement
     /// </summary>
     public static class ASMeadowUtils
     {
-        private static ASOptions.ClientOptions ClientOptions => GetClientOptions();
+        private static ASOptions.ClientOptions ClientOptions = AscendedSaintMain.ClientOptions;
 
         /// <summary>
         /// Applies Meadow-specific hooks to the game. In particular, this is used to trigger settings sync upon joining a lobby.
@@ -34,6 +33,8 @@ namespace AscendedSaint.Attunement
         /// <remarks>If the client has joined an online lobby, a request is instead sent to the host to send its own settings to the player.</remarks>
         private static void GameSessionHook(On.GameSession.orig_ctor orig, GameSession self, RainWorldGame game)
         {
+            orig.Invoke(self, game);
+
             if (OnlineManager.lobby == null)
             {
                 ASLogger.LogDebug("Game session is not an online game, ignoring.");
@@ -45,13 +46,13 @@ namespace AscendedSaint.Attunement
             {
                 ASLogger.LogDebug("Player is host, creating new SharedOptions object with REMIX settings.");
 
-                SetClientOptions(new SharedOptions());
+                ClientOptions = new SharedOptions();
             }
             else
             {
                 OnlinePlayer hostPlayer = OnlineManager.lobby.owner;
 
-                ASLogger.LogDebug($"Requesting host player ({hostPlayer.GetUniqueID()}) for new SharedOptions object...");
+                ASLogger.LogDebug($"Requesting host player for new SharedOptions object...");
 
                 hostPlayer.InvokeRPC(typeof(ASRPCs).GetMethod("RequestRemixSync").CreateDelegate(typeof(Action<RPCEvent, OnlinePlayer>)), OnlineManager.mePlayer);
             }
@@ -101,13 +102,13 @@ namespace AscendedSaint.Attunement
 
                     if (entity.owner == OnlineManager.mePlayer)
                     {
-                        ASLogger.LogDebug($"Player owns {entity.id}, calling revival method.");
+                        ASLogger.LogDebug($"Player owns {physicalObject} ({entity.id}), calling revival method.");
 
                         revivalMethod.Invoke();
                     }
                     else
                     {
-                        ASLogger.LogDebug($"Requesting owner of {entity.id} to run revival method.");
+                        ASLogger.LogDebug($"Requesting owner of {physicalObject} ({entity.id}) to run revival method.");
 
                         entity.owner.InvokeRPC(typeof(ASRPCs).GetMethod("SyncCreatureRevival").CreateDelegate(typeof(Action<RPCEvent, OnlinePhysicalObject>)), onlineObject);
                     }
@@ -153,6 +154,7 @@ namespace AscendedSaint.Attunement
                 ClientOptions.revivalHealthFactor = options.revivalHealthFactor;
 
                 ASLogger.LogInfo("Synced REMIX settings with client!");
+                ASLogger.LogDebug($"Received settings are: {ClientOptions.ToString()}");
             }
 
             /// <summary>
@@ -167,7 +169,7 @@ namespace AscendedSaint.Attunement
 
                 ASLogger.LogInfo($"Received request for REMIX settings sync! Sending data to player {callingPlayer.GetUniqueID()}...");
 
-                callingPlayer.InvokeRPC(typeof(ASRPCs).GetMethod("SyncRemixSettings").CreateDelegate(typeof(Action<RPCEvent, SharedOptions>)), ClientOptions);
+                callingPlayer.InvokeRPC(typeof(ASRPCs).GetMethod("SyncRemixSettings").CreateDelegate(typeof(Action<RPCEvent, SharedOptions>)), ClientOptions as SharedOptions);
             }
 
             /// <summary>

@@ -33,6 +33,15 @@ namespace AscendedSaint
                 requireKarmaFlower = REQUIRE_KARMA_FLOWER.Value;
                 revivalHealthFactor = REVIVAL_HEALTH_FACTOR.Value * 0.01f;
             }
+
+            /// <summary>
+            /// Obtains a <c>String</c> representation of the current <c>ClientOptions</c> instance.
+            /// </summary>
+            /// <returns>A formatted <c>String</c> object with the client's current settings.</returns>
+            public new string ToString()
+            {
+                return $"{base.ToString()} => [AR: {allowRevival}; ASA: {allowSelfAscension}; RKF: {requireKarmaFlower}; RHF: {revivalHealthFactor}]";
+            }
         }
 
         public static Configurable<bool> ALLOW_SELF_ASCENSION;
