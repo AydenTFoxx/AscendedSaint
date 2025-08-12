@@ -2,28 +2,30 @@ using System.Collections.Generic;
 using MoreSlugcats;
 using RWCustom;
 using UnityEngine;
+using static AscendedSaint.AscendedSaintMain.Utils;
 
-namespace AscendedSaint
+namespace AscendedSaint.Attunement
 {
     /// <summary>
-    /// A collection of utility functions used throughout the Ascended Saint mod.
+    /// A collection of utility functions for Saint's new Ascension-related abilities.
     /// </summary>
     public static class ASUtils
     {
+        private static readonly ASOptions.ClientOptions ClientOptions = AscendedSaintMain.ClientOptions;
+
         /// <summary>
         /// Ascends or returns a creature back from life, depending on whether it was dead beforehand.
         /// </summary>
         /// <param name="creature">The creature to be ascended or revived.</param>
+        /// <returns><c>true</c> if the creature was successfully modified, <c>false</c> otherwise.</returns>
         public static void AscendCreature(Creature creature)
         {
-            Room room = creature.room;
             Vector2 pos = creature.mainBodyChunk.pos;
-
-            float revivalHealthFactor = ASOptions.REVIVAL_HEALTH_FACTOR.Value * 0.01f;
+            Room room = creature.room;
 
             if (creature.dead)
             {
-                Debug.Log("Return! " + creature.Template.name);
+                ASLogger.LogInfo("Return! " + creature.Template.name);
 
                 room.AddObject(new ShockWave(pos, 200f, 0.5f, 30));
                 room.AddObject(new Explosion.ExplosionLight(pos, 320f, 1f, 5, Color.white));
@@ -31,15 +33,20 @@ namespace AscendedSaint
                 room.PlaySound(SoundID.Firecracker_Bang, creature.mainBodyChunk, loop: false, 1f, 0.5f + Random.value);
                 room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, creature.mainBodyChunk, loop: false, 1f, 1.25f + Random.value * 1.25f);
 
-                ReviveCreature(creature, revivalHealthFactor);
+                if (IsMeadowEnabled())
+                {
+                    ASMeadowUtils.TryReviveCreature(creature, () => ReviveCreature(creature, ClientOptions.revivalHealthFactor));
+                }
+                else
+                {
+                    ReviveCreature(creature, ClientOptions.revivalHealthFactor);
+                }
 
                 creature.Stun(120);
-
-                if (!(creature is Player)) RemoveFromRespawnsList(creature);
             }
             else
             {
-                Debug.Log("Ascend! " + creature.Template.name);
+                ASLogger.LogInfo("Ascend! " + creature.Template.name);
 
                 room.AddObject(new ShockWave(pos, 150f, 0.25f, 20));
 
@@ -51,6 +58,7 @@ namespace AscendedSaint
         /// Attempts to revive a given physical object if it is an <c>Oracle</c>. Otherwise, attempts to ascend or revive this same object if it is a <c>Creature</c> instead.
         /// </summary>
         /// <param name="physicalObject">The object instance to be revived.</param>
+        /// <returns><c>true</c> if the object was successfully modified, <c>false</c> otherwise.</returns>
         public static void AscendCreature(PhysicalObject physicalObject)
         {
             Room room = physicalObject.room;
@@ -58,7 +66,7 @@ namespace AscendedSaint
 
             if (physicalObject is Oracle oracle)
             {
-                Debug.Log("Return, Iterator! " + oracle.ID);
+                ASLogger.LogInfo("Return, Iterator! " + oracle.ID);
 
                 room.AddObject(new ShockWave(mainBodyChunk.pos, 350f, 0.75f, 24));
                 room.AddObject(new Explosion.ExplosionLight(mainBodyChunk.pos, 320f, 1f, 5, Color.white));
@@ -66,7 +74,14 @@ namespace AscendedSaint
                 room.PlaySound(SoundID.Firecracker_Bang, mainBodyChunk, loop: false, 1f, 1.5f + Random.value);
                 room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, mainBodyChunk, loop: false, 1f, 0.5f + Random.value * 0.5f);
 
-                ReviveOracle(oracle);
+                if (IsMeadowEnabled())
+                {
+                    ASMeadowUtils.TryReviveCreature(physicalObject, () => ReviveOracle(oracle));
+                }
+                else
+                {
+                    ReviveOracle(oracle);
+                }
             }
             else if (physicalObject is Creature)
             {
@@ -74,7 +89,7 @@ namespace AscendedSaint
             }
             else
             {
-                Debug.LogWarning("Cannot ascend or revive this! " + physicalObject.ToString());
+                ASLogger.LogWarning("Cannot ascend or revive this! " + physicalObject.ToString());
             }
         }
 
@@ -101,15 +116,9 @@ namespace AscendedSaint
                 {
                     return storyGame.saveState.deathPersistentSaveData.ripMoon;
                 }
-                else
-                {
-                    return false;
-                }
             }
-            else
-            {
-                return false;
-            }
+
+            return false;
         }
 
         /// <summary>
@@ -133,25 +142,28 @@ namespace AscendedSaint
         /// Removes a given creature from the world's <c>respawnCreatures</c> list.
         /// </summary>
         /// <param name="creature">The creature to be removed.</param>
-        private static void RemoveFromRespawnsList(Creature creature)
+        internal static void RemoveFromRespawnsList(Creature creature)
         {
-            Room room = creature.room;
+            if (IsMeadowEnabled())
+            {
+                if (ASMeadowUtils.TryRemoveCreatureRespawn(creature)) return;
+            }
 
             CreatureState state = creature.abstractCreature.state;
             EntityID ID = creature.abstractCreature.ID;
 
-            if (state.alive && ID.spawner >= 0 && room.world.game.session is StoryGameSession)
+            if (state.alive && ID.spawner >= 0 && creature.room.game.session is StoryGameSession storySession)
             {
-                (room.world.game.session as StoryGameSession).saveState.respawnCreatures.Remove(ID.spawner);
+                storySession.saveState.respawnCreatures.Remove(ID.spawner);
             }
         }
 
         /// <summary>
         /// Restores a creature's health and sets its state as "alive" once again.
         /// </summary>
-        /// <param name="creature">The  creature to be revived.</param>
+        /// <param name="creature">The creature to be revived.</param>
         /// <param name="health">The health to be restored for the newly revived creature. Slugcats ignore this setting and are always restored to full health instead.</param>
-        private static void ReviveCreature(Creature creature, float health = 1f)
+        internal static void ReviveCreature(Creature creature, float health = 1f)
         {
             AbstractCreature abstractCreature = creature.abstractCreature;
 
@@ -176,6 +188,10 @@ namespace AscendedSaint
                 player.exhausted = true;
                 player.aerobicLevel = 1f;
             }
+            else
+            {
+                RemoveFromRespawnsList(creature);
+            }
         }
 
         /// <summary>
@@ -183,7 +199,7 @@ namespace AscendedSaint
         /// </summary>
         /// <param name="oracle">The iterator to de-ascend.</param>
         /// <remarks>But why would you?</remarks>
-        private static void ReviveOracle(Oracle oracle)
+        internal static void ReviveOracle(Oracle oracle)
         {
             Room room = oracle.room;
 
@@ -199,26 +215,22 @@ namespace AscendedSaint
             {
                 Custom.Log("De-Ascend saint moon");
 
-                List<OracleSwarmer> myNewSwarmers = new List<OracleSwarmer> { };
+                List<OracleSwarmer> myNewSwarmers = new List<OracleSwarmer>();
 
                 for (int i = 0; i < 7; i++)
                 {
-                    SLOracleSwarmer swarmer = CreateSLOracleSwarmer(oracle);
-
-                    if (swarmer == null) continue;
-
-                    myNewSwarmers.Add(swarmer);
+                    myNewSwarmers.Add(CreateSLOracleSwarmer(oracle));
                 }
 
-                if (myNewSwarmers.Count == 0) return;
-
                 oracle.mySwarmers.AddRange(myNewSwarmers);
+                
+                (oracle.oracleBehavior as SLOracleBehavior).State.neuronsLeft = 7;
 
                 storyGame.saveState.deathPersistentSaveData.ripMoon = false;
             }
             else
             {
-                Debug.LogWarning("Unknown Oracle has been revived: " + oracle.ID);
+                ASLogger.LogWarning("Unknown Oracle has been revived: " + oracle.ID);
             }
 
             Vector2 pos = oracle.bodyChunks[0].pos;
@@ -249,7 +261,7 @@ namespace AscendedSaint
 
             if (!(abstractSwarmer.realizedObject is SLOracleSwarmer))
             {
-                Debug.LogWarning("Failed to create Moon's Neuron Fly!");
+                ASLogger.LogWarning("Failed to create Moon's Neuron Fly!");
 
                 return null;
             }
