@@ -3,7 +3,7 @@
     <PropertyGroup>
         <TargetFramework>net48</TargetFramework>
 
-        <PostBuildEvent>copy %HOMEPATH%\Projects\Rider\YNHZRFXN\AscendedSaint\bin\Debug\net48\AscendedSaint.dll %HOMEPATH%\Projects\Rider\YNHZRFXN\mod\plugins</PostBuildEvent>
+        <PostBuildEvent>copy %HOMEPATH%\Projects\Rider\YNHZRFXN\AscendedSaint\bin\Release\net48\AscendedSaint.dll %HOMEPATH%\Projects\Rider\YNHZRFXN\mod\plugins</PostBuildEvent>
     </PropertyGroup>
 
     <ItemGroup>
