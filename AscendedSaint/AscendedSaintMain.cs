@@ -15,7 +15,7 @@ namespace AscendedSaint
     {
         public const string PLUGIN_GUID = "ynhzrfxn.ascendedsaint";
         public const string PLUGIN_NAME = "Ascended Saint";
-        public const string PLUGIN_VERSION = "1.2.0";
+        public const string PLUGIN_VERSION = "1.2.1";
         private const string RAIN_MEADOW_ID = "henpemaz_rainmeadow";
 
         private static bool isInitialized = false;
@@ -49,11 +49,13 @@ namespace AscendedSaint
             On.RainWorld.OnModsInit -= OnModsInitHook;
             On.RainWorld.PostModsInit -= PostModsInitHook;
 
-            On.GameSession.ctor -= DefaultGameSessionHook;
-
             if (Utils.IsMeadowEnabled())
             {
                 ASMeadowUtils.RemoveMeadowHooks();
+            }
+            else
+            {
+                On.GameSession.ctor -= VanillaGameSessionHook;
             }
         }
 
@@ -83,19 +85,19 @@ namespace AscendedSaint
 
                 ASMeadowUtils.ApplyMeadowHooks();
             }
-
-            On.GameSession.ctor += DefaultGameSessionHook;
+            else
+            {
+                On.GameSession.ctor += VanillaGameSessionHook;
+            }
 
             orig.Invoke(self);
         }
 
-        internal static void DefaultGameSessionHook(On.GameSession.orig_ctor orig, GameSession self, RainWorldGame game)
+        internal static void VanillaGameSessionHook(On.GameSession.orig_ctor orig, GameSession self, RainWorldGame game)
         {
             orig.Invoke(self, game);
 
             ClientOptions.RefreshOptions();
-
-            ASLogger.LogDebug($"Client options are: {ClientOptions.ToString()}");
         }
 
         /// <summary>
