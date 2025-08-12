@@ -39,6 +39,8 @@ namespace AscendedSaint.Attunement
             {
                 ASLogger.LogDebug("Game session is not an online game, ignoring.");
 
+                ClientOptions.RefreshOptions();
+
                 return;
             }
 
@@ -54,7 +56,7 @@ namespace AscendedSaint.Attunement
 
                 ASLogger.LogDebug($"Requesting host player for new SharedOptions object...");
 
-                hostPlayer.InvokeRPC(typeof(ASRPCs).GetMethod("RequestRemixSync").CreateDelegate(typeof(Action<RPCEvent, OnlinePlayer>)), OnlineManager.mePlayer);
+                hostPlayer.InvokeOnceRPC(typeof(ASRPCs).GetMethod("RequestRemixSync").CreateDelegate(typeof(Action<RPCEvent, OnlinePlayer>)), OnlineManager.mePlayer);
             }
         }
 
@@ -144,7 +146,7 @@ namespace AscendedSaint.Attunement
             /// <param name="options">The options object sent by the host player.</param>
             /// <remarks>This event is sent from the host player to the client upon joining a lobby.</remarks>
             [RPCMethod]
-            public static void SyncRemixSettings(SharedOptions options)
+            public static void SyncRemixSettings(RPCEvent _, SharedOptions options)
             {
                 if (OnlineManager.lobby.isOwner) return;
 
@@ -154,7 +156,7 @@ namespace AscendedSaint.Attunement
                 ClientOptions.revivalHealthFactor = options.revivalHealthFactor;
 
                 ASLogger.LogInfo("Synced REMIX settings with client!");
-                ASLogger.LogDebug($"Received settings are: {ClientOptions.ToString()}");
+                ASLogger.LogDebug($"Received settings are: {options.ToString()}");
             }
 
             /// <summary>
@@ -163,13 +165,13 @@ namespace AscendedSaint.Attunement
             /// <param name="callingPlayer">The player who requested the sync.</param>
             /// <remarks>This event is sent from the client player to the host upon joining a lobby.</remarks>
             [RPCMethod]
-            public static void RequestRemixSync(OnlinePlayer callingPlayer)
+            public static void RequestRemixSync(RPCEvent _, OnlinePlayer callingPlayer)
             {
                 if (!OnlineManager.lobby.isOwner) return;
 
-                ASLogger.LogInfo($"Received request for REMIX settings sync! Sending data to player {callingPlayer.GetUniqueID()}...");
+                ASLogger.LogInfo($"Received request for REMIX settings sync! Sending data to player {callingPlayer.inLobbyId}...");
 
-                callingPlayer.InvokeRPC(typeof(ASRPCs).GetMethod("SyncRemixSettings").CreateDelegate(typeof(Action<RPCEvent, SharedOptions>)), ClientOptions as SharedOptions);
+                callingPlayer.InvokeOnceRPC(typeof(ASRPCs).GetMethod("SyncRemixSettings").CreateDelegate(typeof(Action<RPCEvent, SharedOptions>)), ClientOptions as SharedOptions);
             }
 
             /// <summary>
@@ -178,7 +180,7 @@ namespace AscendedSaint.Attunement
             /// <param name="revivedCreature">The creature who was revived.</param>
             /// <remarks>While creature revival is usually synced on its own, iterators and especially players need special handling for proper sync.</remarks>
             [RPCMethod]
-            public static void SyncCreatureRevival(OnlinePhysicalObject revivedCreature)
+            public static void SyncCreatureRevival(RPCEvent _, OnlinePhysicalObject revivedCreature)
             {
                 PhysicalObject physicalObject = revivedCreature.apo.realizedObject;
 
@@ -206,7 +208,7 @@ namespace AscendedSaint.Attunement
             /// <param name="creature"></param>
             /// <seealso cref="RemoveFromRespawnsList(Creature)"/>
             [RPCMethod]
-            public static void SyncRemoveFromRespawnsList(OnlineCreature creature)
+            public static void SyncRemoveFromRespawnsList(RPCEvent _, OnlineCreature creature)
             {
                 CreatureState state = creature.abstractCreature.state;
                 EntityID ID = creature.abstractCreature.ID;
