@@ -1,7 +1,6 @@
 ﻿using System.Security.Permissions;
 using System.Linq;
 using BepInEx;
-using UnityEngine;
 using AscendedSaint.Attunement;
 
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -22,26 +21,21 @@ namespace AscendedSaint
         private static bool isInitialized = false;
         private static ASOptions options;
 
-        public static AscendedSaintMain instance;
-        public ASOptions.SharedOptions clientOptions;
+        internal static ASOptions.ClientOptions clientOptions;
 
         public void OnEnable()
         {
             if (isInitialized) return;
 
             isInitialized = true;
-            instance = this;
 
             options = new ASOptions();
-            clientOptions = new ASOptions.SharedOptions();
+            clientOptions = new ASOptions.ClientOptions();
 
             On.RainWorld.OnModsInit += OnModsInitHook;
-            On.Player.ClassMechanicsSaint += SaintMechanicsHooks.ClassMechanicsSaintHook;
+            On.RainWorld.PostModsInit += PostModsInitHook;
 
-            if (Utils.IsMeadowEnabled())
-            {
-                ASMeadowUtils.ApplyMeadowHooks();
-            }
+            On.Player.ClassMechanicsSaint += SaintMechanicsHooks.ClassMechanicsSaintHook;
         }
 
         public void OnDisable()
@@ -51,10 +45,19 @@ namespace AscendedSaint
             isInitialized = false;
 
             On.Player.ClassMechanicsSaint -= SaintMechanicsHooks.ClassMechanicsSaintHook;
+
             On.RainWorld.OnModsInit -= OnModsInitHook;
+            On.RainWorld.PostModsInit -= PostModsInitHook;
+
+            On.GameSession.ctor -= VanillaGameSessionHook;
+
+            if (Utils.IsMeadowEnabled())
+            {
+                ASMeadowUtils.RemoveMeadowHooks();
+            }
         }
 
-        void OnModsInitHook(On.RainWorld.orig_OnModsInit orig, RainWorld self)
+        private void OnModsInitHook(On.RainWorld.orig_OnModsInit orig, RainWorld self)
         {
             orig.Invoke(self);
 
@@ -64,8 +67,33 @@ namespace AscendedSaint
             }
             catch (System.Exception ex)
             {
-                Debug.LogError(ex);
+                ASLogger.LogError("Failed to register the mod's REMIX options!", ex);
             }
+        }
+
+        private void PostModsInitHook(On.RainWorld.orig_PostModsInit orig, RainWorld self)
+        {
+            ASLogger.CleanLogFile();
+
+            ASLogger.LogInfo("Initialized Ascended Saint mod successfully.");
+
+            if (Utils.IsMeadowEnabled())
+            {
+                ASLogger.LogInfo("Meadow is enabled! Applying hooks...");
+
+                ASMeadowUtils.ApplyMeadowHooks();
+            }
+
+            On.GameSession.ctor += VanillaGameSessionHook;
+
+            orig.Invoke(self);
+        }
+
+        internal static void VanillaGameSessionHook(On.GameSession.orig_ctor orig, GameSession self, RainWorldGame game)
+        {
+            clientOptions.RefreshOptions();
+
+            orig.Invoke(self, game);
         }
 
         /// <summary>
@@ -73,47 +101,41 @@ namespace AscendedSaint
         /// </summary>
         internal static class Utils
         {
+            private static bool isMeadowEnabled = false;
+            private static bool cachedMeadowCheck = false;
+
+            /// <summary>
+            /// Obtains the client's currently active settings for this mod.
+            /// </summary>
+            /// <returns>A <c>ClientOptions</c> object with the client's current settings.</returns>
+            public static ASOptions.ClientOptions GetClientOptions()
+            {
+                return clientOptions;
+            }
+
+            /// <summary>
+            /// Sets the client's settings to the given <c>ClientOptions</c> object.
+            /// </summary>
+            /// <param name="newOptions">The new options object.</param>
+            public static void SetClientOptions(ASOptions.ClientOptions newOptions)
+            {
+                clientOptions = newOptions;
+            }
+
             /// <summary>
             /// Determines whether the Rain Meadow mod is enabled.
             /// </summary>
             /// <returns><c>true</c> if Rain Meadow is enabled, <c>false</c> otherwise.</returns>
             /// <remarks>Note this only checks for the mod's presence, not if the player is in an online lobby.</remarks>
-            /// <seealso cref="IsMultiplayerSession"/>
             public static bool IsMeadowEnabled()
             {
-                return ModManager.ActiveMods.Any(mod => mod.id == RAIN_MEADOW_ID);
-            }
-
-            /// <summary>
-            /// Determines if the player is currently in a lobby within Rain Meadow.
-            /// </summary>
-            /// <returns><c>true</c> if the player is in a lobby, <c>false</c> otherwise.</returns>
-            public static bool IsOnlineMultiplayerSession()
-            {
-                return IsMeadowEnabled() && RainMeadow.OnlineManager.lobby != null;
-            }
-
-            /// <summary>
-            /// Attempts to cast a given object to a type from another mod, without breaking this one.
-            /// </summary>
-            /// <typeparam name="T">The external type to be returned.</typeparam>
-            /// <param name="obj">The object to be casted to <paramref name="obj"/>.</param>
-            /// <returns>Either <paramref name="obj"/> cast to <typeparamref name="T"/>, or <typeparamref name="T"/>'s default value if the conversion fails.</returns>
-            public static T CastToModdedType<T>(object obj)
-            {
-                T result = default;
-
-                try
+                if (!cachedMeadowCheck)
                 {
-                    result = (T)obj;
-                }
-                catch (System.InvalidCastException ex)
-                {
-                    Debug.LogError($"{nameof(obj)} should be a boxed {nameof(T)} object.");
-                    Debug.LogError(ex);
+                    isMeadowEnabled = ModManager.ActiveMods.Any(mod => mod.id == RAIN_MEADOW_ID);
+                    cachedMeadowCheck = true;
                 }
 
-                return result;
+                return isMeadowEnabled;
             }
         }
     }

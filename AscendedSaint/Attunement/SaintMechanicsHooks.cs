@@ -10,7 +10,7 @@ namespace AscendedSaint.Attunement
     /// </summary>
     public static class SaintMechanicsHooks
     {
-        private static readonly ASOptions.SharedOptions clientOptions = AscendedSaintMain.instance.clientOptions;
+        private static ASOptions.ClientOptions ClientOptions => AscendedSaintMain.Utils.GetClientOptions();
         private const float KARMIC_BURST_RADIUS = 60f;
 
         public static void ClassMechanicsSaintHook(On.Player.orig_ClassMechanicsSaint orig, Player self)
@@ -53,11 +53,11 @@ namespace AscendedSaint.Attunement
 
                     if (!shouldAscendCreature) continue;
 
-                    if (ASUtils.CanReviveCreature(physicalObject) && clientOptions.allowRevival)
+                    if (ASUtils.CanReviveCreature(physicalObject) && ClientOptions.allowRevival)
                     {
-                        Debug.Log("[AS] Attempting to revive: " + physicalObject);
+                        ASLogger.LogInfo("Attempting to revive: " + physicalObject);
 
-                        if (clientOptions.requireKarmaFlower)
+                        if (ClientOptions.requireKarmaFlower)
                         {
                             PhysicalObject karmaFlower = ASUtils.GetHeldKarmaFlower(self);
 
@@ -65,6 +65,8 @@ namespace AscendedSaint.Attunement
 
                             karmaFlower.Destroy();
                         }
+
+                        self.killFac = 0f;
 
                         orig.Invoke(self);
 
@@ -75,9 +77,9 @@ namespace AscendedSaint.Attunement
 
                         return;
                     }
-                    else if (physicalObject == self && clientOptions.allowSelfAscension)
+                    else if (physicalObject == self && ClientOptions.allowSelfAscension)
                     {
-                        Debug.Log("[AS] Attempting to ascend: " + self.SlugCatClass);
+                        ASLogger.LogInfo("Attempting to ascend: " + self.SlugCatClass);
 
                         ASUtils.AscendCreature(physicalObject as Player);
 

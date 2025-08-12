@@ -11,42 +11,21 @@ namespace AscendedSaint.Attunement
     /// </summary>
     public static class ASUtils
     {
-        /// <summary>
-        /// The performed action on the given creature after applying the Ascension ability.
-        /// </summary>
-        public enum AscensionResult
-        {
-            /// <summary>
-            /// The creature was ascended. This is only used for when the player ascends themselves.
-            /// </summary>
-            Ascended,
-            /// <summary>
-            /// The creature was revived. Used if the creature was previously dead and the player has now revived it.
-            /// </summary>
-            Revived,
-            /// <summary>
-            /// The creature was ignored; No operation was performed.
-            /// </summary>
-            Ignored
-        }
+        private static ASOptions.ClientOptions ClientOptions => GetClientOptions();
 
         /// <summary>
         /// Ascends or returns a creature back from life, depending on whether it was dead beforehand.
         /// </summary>
         /// <param name="creature">The creature to be ascended or revived.</param>
         /// <returns><c>true</c> if the creature was successfully modified, <c>false</c> otherwise.</returns>
-        public static AscensionResult AscendCreature(Creature creature)
+        public static void AscendCreature(Creature creature)
         {
-            AscensionResult ascensionResult;
-
             Vector2 pos = creature.mainBodyChunk.pos;
             Room room = creature.room;
 
-            float revivalHealthFactor = ASOptions.REVIVAL_HEALTH_FACTOR.Value * 0.01f;
-
             if (creature.dead)
             {
-                Debug.Log("[AS] Return! " + creature.Template.name);
+                ASLogger.LogInfo("Return! " + creature.Template.name);
 
                 room.AddObject(new ShockWave(pos, 200f, 0.5f, 30));
                 room.AddObject(new Explosion.ExplosionLight(pos, 320f, 1f, 5, Color.white));
@@ -54,36 +33,25 @@ namespace AscendedSaint.Attunement
                 room.PlaySound(SoundID.Firecracker_Bang, creature.mainBodyChunk, loop: false, 1f, 0.5f + Random.value);
                 room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, creature.mainBodyChunk, loop: false, 1f, 1.25f + Random.value * 1.25f);
 
-                ReviveCreature(creature, revivalHealthFactor);
-
-                if (IsOnlineMultiplayerSession())
+                if (IsMeadowEnabled())
                 {
-                    foreach (RainMeadow.OnlinePlayer onlinePlayer in RainMeadow.OnlineManager.players)
-                    {
-                        if (onlinePlayer.isMe) continue;
-
-                        onlinePlayer.InvokeRPC(typeof(ASMeadowUtils.ASRPCs).GetMethod("UpdateRevivedCreature").CreateDelegate(typeof(System.Action<RainMeadow.RPCEvent, PhysicalObject>)), creature);
-                    }
+                    ASMeadowUtils.TryReviveCreature(creature, () => ReviveCreature(creature, ClientOptions.revivalHealthFactor));
+                }
+                else
+                {
+                    ReviveCreature(creature, ClientOptions.revivalHealthFactor);
                 }
 
                 creature.Stun(120);
-
-                if (!(creature is Player)) RemoveFromRespawnsList(creature);
-
-                ascensionResult = AscensionResult.Revived;
             }
             else
             {
-                Debug.Log("[AS] Ascend! " + creature.Template.name);
+                ASLogger.LogInfo("Ascend! " + creature.Template.name);
 
                 room.AddObject(new ShockWave(pos, 150f, 0.25f, 20));
 
                 creature.Die();
-
-                ascensionResult = AscensionResult.Ascended;
             }
-
-            return ascensionResult;
         }
 
         /// <summary>
@@ -91,16 +59,14 @@ namespace AscendedSaint.Attunement
         /// </summary>
         /// <param name="physicalObject">The object instance to be revived.</param>
         /// <returns><c>true</c> if the object was successfully modified, <c>false</c> otherwise.</returns>
-        public static AscensionResult AscendCreature(PhysicalObject physicalObject)
+        public static void AscendCreature(PhysicalObject physicalObject)
         {
-            AscensionResult ascensionResult = AscensionResult.Ignored;
-
             Room room = physicalObject.room;
             BodyChunk mainBodyChunk = physicalObject.bodyChunks[0];
 
             if (physicalObject is Oracle oracle)
             {
-                Debug.Log("[AS] Return, Iterator! " + oracle.ID);
+                ASLogger.LogInfo("Return, Iterator! " + oracle.ID);
 
                 room.AddObject(new ShockWave(mainBodyChunk.pos, 350f, 0.75f, 24));
                 room.AddObject(new Explosion.ExplosionLight(mainBodyChunk.pos, 320f, 1f, 5, Color.white));
@@ -108,30 +74,23 @@ namespace AscendedSaint.Attunement
                 room.PlaySound(SoundID.Firecracker_Bang, mainBodyChunk, loop: false, 1f, 1.5f + Random.value);
                 room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, mainBodyChunk, loop: false, 1f, 0.5f + Random.value * 0.5f);
 
-                ReviveOracle(oracle);
-
-                if (IsOnlineMultiplayerSession())
+                if (IsMeadowEnabled())
                 {
-                    foreach (RainMeadow.OnlinePlayer onlinePlayer in RainMeadow.OnlineManager.players)
-                    {
-                        if (onlinePlayer.isMe) continue;
-
-                        onlinePlayer.InvokeRPC(typeof(ASMeadowUtils.ASRPCs).GetMethod("UpdateRevivedCreature").CreateDelegate(typeof(System.Action<RainMeadow.RPCEvent, PhysicalObject>)), oracle);
-                    }
+                    ASMeadowUtils.TryReviveCreature(physicalObject, () => ReviveOracle(oracle));
                 }
-
-                ascensionResult = AscensionResult.Revived;
+                else
+                {
+                    ReviveOracle(oracle);
+                }
             }
             else if (physicalObject is Creature)
             {
-                ascensionResult = AscendCreature(physicalObject as Creature);
+                AscendCreature(physicalObject as Creature);
             }
             else
             {
-                Debug.LogWarning("[AS] Cannot ascend or revive this! " + physicalObject.ToString());
+                ASLogger.LogWarning("Cannot ascend or revive this! " + physicalObject.ToString());
             }
-
-            return ascensionResult;
         }
 
         /// <summary>
@@ -157,15 +116,9 @@ namespace AscendedSaint.Attunement
                 {
                     return storyGame.saveState.deathPersistentSaveData.ripMoon;
                 }
-                else
-                {
-                    return false;
-                }
             }
-            else
-            {
-                return false;
-            }
+
+            return false;
         }
 
         /// <summary>
@@ -191,6 +144,11 @@ namespace AscendedSaint.Attunement
         /// <param name="creature">The creature to be removed.</param>
         internal static void RemoveFromRespawnsList(Creature creature)
         {
+            if (IsMeadowEnabled())
+            {
+                if (ASMeadowUtils.TryRemoveCreatureRespawn(creature)) return;
+            }
+
             CreatureState state = creature.abstractCreature.state;
             EntityID ID = creature.abstractCreature.ID;
 
@@ -203,7 +161,7 @@ namespace AscendedSaint.Attunement
         /// <summary>
         /// Restores a creature's health and sets its state as "alive" once again.
         /// </summary>
-        /// <param name="creature">The  creature to be revived.</param>
+        /// <param name="creature">The creature to be revived.</param>
         /// <param name="health">The health to be restored for the newly revived creature. Slugcats ignore this setting and are always restored to full health instead.</param>
         internal static void ReviveCreature(Creature creature, float health = 1f)
         {
@@ -230,6 +188,10 @@ namespace AscendedSaint.Attunement
                 player.exhausted = true;
                 player.aerobicLevel = 1f;
             }
+            else
+            {
+                RemoveFromRespawnsList(creature);
+            }
         }
 
         /// <summary>
@@ -239,6 +201,8 @@ namespace AscendedSaint.Attunement
         /// <remarks>But why would you?</remarks>
         internal static void ReviveOracle(Oracle oracle)
         {
+            // NOTE: FP works fine. LttM is revived but remains unconscious.
+
             Room room = oracle.room;
 
             if (!(room.game.session is StoryGameSession storyGame)) return;
@@ -253,26 +217,22 @@ namespace AscendedSaint.Attunement
             {
                 Custom.Log("De-Ascend saint moon");
 
-                List<OracleSwarmer> myNewSwarmers = new List<OracleSwarmer> { };
+                List<OracleSwarmer> myNewSwarmers = new List<OracleSwarmer>();
 
                 for (int i = 0; i < 7; i++)
                 {
-                    SLOracleSwarmer swarmer = CreateSLOracleSwarmer(oracle);
-
-                    if (swarmer == null) continue;
-
-                    myNewSwarmers.Add(swarmer);
+                    myNewSwarmers.Add(CreateSLOracleSwarmer(oracle));
                 }
 
-                if (myNewSwarmers.Count == 0) return;
-
                 oracle.mySwarmers.AddRange(myNewSwarmers);
+                
+                (oracle.oracleBehavior as SLOracleBehavior).State.neuronsLeft = 7;
 
                 storyGame.saveState.deathPersistentSaveData.ripMoon = false;
             }
             else
             {
-                Debug.LogWarning("Unknown Oracle has been revived: " + oracle.ID);
+                ASLogger.LogWarning("Unknown Oracle has been revived: " + oracle.ID);
             }
 
             Vector2 pos = oracle.bodyChunks[0].pos;
@@ -303,7 +263,7 @@ namespace AscendedSaint.Attunement
 
             if (!(abstractSwarmer.realizedObject is SLOracleSwarmer))
             {
-                Debug.LogWarning("Failed to create Moon's Neuron Fly!");
+                ASLogger.LogWarning("Failed to create Moon's Neuron Fly!");
 
                 return null;
             }
