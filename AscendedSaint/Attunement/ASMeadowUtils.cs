@@ -1,5 +1,6 @@
 using RainMeadow;
 using System;
+using System.Runtime.CompilerServices;
 using static AscendedSaint.Attunement.ASUtils;
 
 namespace AscendedSaint.Attunement
@@ -10,6 +11,76 @@ namespace AscendedSaint.Attunement
     public static class ASMeadowUtils
     {
         private static ASOptions.ClientOptions ClientOptions = AscendedSaintMain.ClientOptions;
+
+        /// <summary>
+        /// Holds weak references to previously queried <c>OnlinePhysicalEntity</c>s, so they do not have to be queried again.
+        /// </summary>
+        private static readonly ConditionalWeakTable<PhysicalObject, OnlinePhysicalObject> _cachedOnlineObjects = new ConditionalWeakTable<PhysicalObject, OnlinePhysicalObject>();
+        /// <summary>
+        /// Holds weak references to previously queried <c>WorldSession</c>s, so they do not have to be queried again.
+        /// </summary>
+        private static readonly ConditionalWeakTable<PhysicalObject, WorldSession> _cachedWorldSessions = new ConditionalWeakTable<PhysicalObject, WorldSession>();
+
+        /// <summary>
+        /// Obtains the <c>OnlinePhysicalObject</c>-equivalent instance of the given <c>PhysicalObject</c>.
+        /// </summary>
+        /// <param name="self">The <c>PhysicalObject</c> to be queried.</param>
+        /// <returns>The <c>OnlinePhysicalObject</c> which represents the given input, or <c>null</c> if none is found.</returns>
+        public static OnlinePhysicalObject GetOnlinePhysicalObject(this PhysicalObject self) => _cachedOnlineObjects.GetValue(self, QueryOnlinePhysicalEntity);
+
+        /// <summary>
+        /// Queries the world's active entities in order to find a given <c>PhysicalObject</c> instance.
+        /// </summary>
+        /// <param name="physicalObject">The <c>PhysicalObject</c> to be queried.</param>
+        /// <returns>The <c>OnlinePhysicalObject</c> which represents the given input, or <c>null</c> if none is found.</returns>
+        private static OnlinePhysicalObject QueryOnlinePhysicalEntity(PhysicalObject physicalObject)
+        {
+            WorldSession worldSession = GetWorldSession(physicalObject);
+
+            if (worldSession == null)
+            {
+                ASLogger.LogWarning($"Could not find WorldSession of {physicalObject}, aborting operation.");
+            }
+            else
+            {
+                foreach (OnlineEntity entity in worldSession.activeEntities)
+                {
+                    if (!(entity is OnlinePhysicalObject onlineObject)
+                        || onlineObject.apo.realizedObject != physicalObject) continue;
+
+                    return onlineObject;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Obtains the <c>WorldSession</c> instance where the given <c>PhysicalObject</c> is found at.
+        /// </summary>
+        /// <param name="self">The <c>PhysicalObject</c> to be queried.</param>
+        /// <returns>The object's <c>WorldSession</c> instance, or <c>null</c> if none is found.</returns>
+        public static WorldSession GetWorldSession(this PhysicalObject self) => _cachedWorldSessions.GetValue(self, QueryWorldSession);
+
+        /// <summary>
+        /// Obtains the <c>WorldSession</c> instance where the given <c>PhysicalObject</c> is found at.
+        /// </summary>
+        /// <param name="physicalObject">The physical object to be queried.</param>
+        /// <returns>The object's <c>WorldSession</c> instance, or <c>null</c> if none is found.</returns>
+        private static WorldSession QueryWorldSession(PhysicalObject physicalObject)
+        {
+            foreach (WorldSession session in OnlineManager.lobby.worldSessions.Values)
+            {
+                if (session.world == physicalObject.room.world)
+                {
+                    return session;
+                }
+            }
+
+            ASLogger.LogWarning($"Failed to obtain the WorldSession instance of {physicalObject}!");
+
+            return null;
+        }
 
         /// <summary>
         /// Applies Meadow-specific hooks to the game. In particular, this is used to trigger settings sync upon joining a lobby.
@@ -63,32 +134,6 @@ namespace AscendedSaint.Attunement
         }
 
         /// <summary>
-        /// Obtains the <c>WorldSession</c> instance where the given <c>PhysicalObject</c> is found at.
-        /// </summary>
-        /// <param name="physicalObject">The physical object to be searched.</param>
-        /// <returns>The object's <c>WorldSession</c> instance, or <c>null</c> if none is found.</returns>
-        internal static WorldSession GetWorldSession(PhysicalObject physicalObject)
-        {
-            WorldSession worldSession = null;
-
-            foreach (WorldSession session in OnlineManager.lobby.worldSessions.Values)
-            {
-                if (session.world == physicalObject.room.world)
-                {
-                    worldSession = session;
-                    break;
-                }
-            }
-
-            if (worldSession == null)
-            {
-                ASLogger.LogWarning($"Failed to obtain the WorldSession instance of {physicalObject}!");
-            }
-
-            return worldSession;
-        }
-
-        /// <summary>
         /// Attempts to revive a given creature in a Meadow-compatible context.
         /// </summary>
         /// <param name="physicalObject">The creature to be revived.</param>
@@ -97,27 +142,23 @@ namespace AscendedSaint.Attunement
         {
             if (OnlineManager.lobby != null)
             {
-                WorldSession worldSession = GetWorldSession(physicalObject);
+                OnlinePhysicalObject onlineObject = GetOnlinePhysicalObject(physicalObject);
 
-                foreach (OnlineEntity entity in worldSession.activeEntities)
+                if (onlineObject == null)
                 {
-                    if (!(entity is OnlinePhysicalObject onlineObject)
-                        || onlineObject.apo.realizedObject != physicalObject) continue;
+                    ASLogger.LogWarning($"Failed to retrieve the OnlineEntity version of {physicalObject}. No operation will be performed.");
+                }
+                else if (onlineObject.owner == OnlineManager.mePlayer)
+                {
+                    ASLogger.LogDebug($"Player owns {physicalObject} ({onlineObject.id}), calling revival method.");
 
-                    if (entity.owner == OnlineManager.mePlayer)
-                    {
-                        ASLogger.LogDebug($"Player owns {physicalObject} ({entity.id}), calling revival method.");
+                    revivalMethod.Invoke();
+                }
+                else
+                {
+                    ASLogger.LogDebug($"Requesting owner of {physicalObject} ({onlineObject.id}) to run revival method.");
 
-                        revivalMethod.Invoke();
-                    }
-                    else
-                    {
-                        ASLogger.LogDebug($"Requesting owner of {physicalObject} ({entity.id}) to run revival method.");
-
-                        entity.owner.InvokeRPC(typeof(ASRPCs).GetMethod("SyncCreatureRevival").CreateDelegate(typeof(Action<RPCEvent, OnlinePhysicalObject>)), onlineObject);
-                    }
-
-                    break;
+                    onlineObject.owner.InvokeRPC(typeof(ASRPCs).GetMethod("SyncCreatureRevival").CreateDelegate(typeof(Action<RPCEvent, OnlinePhysicalObject>)), onlineObject);
                 }
             }
             else revivalMethod.Invoke();
@@ -135,6 +176,27 @@ namespace AscendedSaint.Attunement
             OnlineManager.lobby.owner.InvokeRPC(typeof(ASRPCs).GetMethod("SyncRemoveFromRespawnsList").CreateDelegate(typeof(Action<RPCEvent, Creature>)), creature);
 
             return true;
+        }
+
+        /// <summary>
+        /// Requests all online players to sync Saint's ascension ability effects.
+        /// </summary>
+        /// <param name="physicalObject">The physical object which was ascended or revived.</param>
+        /// <remarks>If the player is not in an online lobby, this has the same effects as calling <see cref="SpawnAscensionEffects(PhysicalObject, bool)"/></remarks>
+        public static void RequestAscensionEffectsSync(PhysicalObject physicalObject)
+        {
+            if (OnlineManager.lobby == null)
+            {
+                SpawnAscensionEffects(physicalObject);
+                return;
+            }
+
+            foreach (OnlinePlayer onlinePlayer in OnlineManager.players)
+            {
+                if (onlinePlayer.isMe) continue;
+
+                onlinePlayer.InvokeOnceRPC(typeof(ASRPCs).GetMethod("SyncAscensionEffects").CreateDelegate(typeof(Action<RPCEvent, OnlinePhysicalObject>)), GetOnlinePhysicalObject(physicalObject));
+            }
         }
 
         /// <summary>
@@ -158,7 +220,7 @@ namespace AscendedSaint.Attunement
                 ClientOptions.revivalHealthFactor = options.revivalHealthFactor;
 
                 ASLogger.LogInfo("Synced REMIX settings with client!");
-                ASLogger.LogDebug($"Received settings are: {options.ToString()}");
+                ASLogger.LogDebug($"Received settings are: {options}");
             }
 
             /// <summary>
@@ -174,6 +236,24 @@ namespace AscendedSaint.Attunement
                 ASLogger.LogInfo($"Received request for REMIX settings sync! Sending data to player {callingPlayer.inLobbyId}...");
 
                 callingPlayer.InvokeOnceRPC(typeof(ASRPCs).GetMethod("SyncRemixSettings").CreateDelegate(typeof(Action<RPCEvent, SharedOptions>)), ClientOptions as SharedOptions);
+            }
+
+            [RPCMethod]
+            public static void SyncAscensionEffects(RPCEvent _, OnlinePhysicalObject onlineObject)
+            {
+                if (onlineObject == null)
+                {
+                    ASLogger.LogWarning("Provided entity does not exist, aborting operation.");
+                    return;
+                }
+
+                if (!(onlineObject.apo.realizedObject is Creature || onlineObject.apo.realizedObject is Oracle))
+                {
+                    ASLogger.LogWarning("Got a request to sync the ascension of an inexistent creature!");
+                    return;
+                }
+
+                SpawnAscensionEffects(onlineObject.apo.realizedObject);
             }
 
             /// <summary>
@@ -207,7 +287,7 @@ namespace AscendedSaint.Attunement
             /// <summary>
             /// Removes a creature from the world's respawn list. A variant of <c>RemoveFromRespawnsList</c> which can be sent as a RPC event.
             /// </summary>
-            /// <param name="creature"></param>
+            /// <param name="onlineCreature">The creature to be removed.</param>
             /// <seealso cref="RemoveFromRespawnsList(Creature)"/>
             [RPCMethod]
             public static void SyncRemoveFromRespawnsList(RPCEvent _, OnlineCreature creature)
