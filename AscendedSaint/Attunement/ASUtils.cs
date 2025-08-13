@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using MoreSlugcats;
 using RWCustom;
 using UnityEngine;
-using static AscendedSaint.AscendedSaintMain.Utils;
+using static AscendedSaint.AscendedSaintMain;
 
 namespace AscendedSaint.Attunement
 {
@@ -27,11 +27,12 @@ namespace AscendedSaint.Attunement
             {
                 ASLogger.LogInfo("Return! " + creature.Template.name);
 
-                if (IsMeadowEnabled())
+                if (Utils.IsMeadowEnabled())
                 {
                     ASMeadowUtils.TryReviveCreature(creature, () => ReviveCreature(creature, ClientOptions.revivalHealthFactor));
-
                     ASMeadowUtils.RequestAscensionEffectsSync(creature);
+
+                    ASMeadowUtils.LogSystemMessage($"{creature.Template.name} was revived by {ASMeadowUtils.PlayerName}.");
                 }
                 else
                 {
@@ -48,7 +49,16 @@ namespace AscendedSaint.Attunement
 
                 creature.Die();
 
-                SpawnAscensionEffects(creature, isRevival: false);
+                if (Utils.IsMeadowEnabled())
+                {
+                    ASMeadowUtils.RequestAscensionEffectsSync(creature);
+
+                    ASMeadowUtils.LogSystemMessage($"{ASMeadowUtils.PlayerName} self-ascended.");
+                }
+                else
+                {
+                    SpawnAscensionEffects(creature, isRevival: false);
+                }
             }
         }
 
@@ -66,13 +76,12 @@ namespace AscendedSaint.Attunement
             {
                 ASLogger.LogInfo("Return, Iterator! " + oracle.ID);
 
-                SpawnAscensionEffects(oracle);
-
-                if (IsMeadowEnabled())
+                if (Utils.IsMeadowEnabled())
                 {
                     ASMeadowUtils.TryReviveCreature(physicalObject, () => ReviveOracle(oracle));
-
                     ASMeadowUtils.RequestAscensionEffectsSync(oracle);
+
+                    ASMeadowUtils.LogSystemMessage($"{Utils.GetOracleName(oracle.ID)} was revived by {ASMeadowUtils.PlayerName}.");
                 }
                 else
                 {
@@ -147,7 +156,8 @@ namespace AscendedSaint.Attunement
                 }
                 else if (oracle.ID == Oracle.OracleID.SL)
                 {
-                    return storyGame.saveState.deathPersistentSaveData.ripMoon;
+                    return storyGame.saveState.deathPersistentSaveData.ripMoon
+                        || (oracle.oracleBehavior as SLOracleBehavior).State.neuronsLeft == 0;
                 }
             }
 
@@ -177,10 +187,7 @@ namespace AscendedSaint.Attunement
         /// <param name="creature">The creature to be removed.</param>
         internal static void RemoveFromRespawnsList(Creature creature)
         {
-            if (IsMeadowEnabled())
-            {
-                if (ASMeadowUtils.TryRemoveCreatureRespawn(creature)) return;
-            }
+            if (Utils.IsMeadowEnabled() && ASMeadowUtils.TryRemoveCreatureRespawn(creature)) return;
 
             CreatureState state = creature.abstractCreature.state;
             EntityID ID = creature.abstractCreature.ID;
