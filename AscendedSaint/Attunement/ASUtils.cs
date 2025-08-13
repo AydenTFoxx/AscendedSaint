@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using MoreSlugcats;
 using RWCustom;
 using UnityEngine;
-using static AscendedSaint.AscendedSaintMain.Utils;
+using static AscendedSaint.AscendedSaintMain;
 
 namespace AscendedSaint.Attunement
 {
@@ -27,19 +27,18 @@ namespace AscendedSaint.Attunement
             {
                 ASLogger.LogInfo("Return! " + creature.Template.name);
 
-                room.AddObject(new ShockWave(pos, 200f, 0.5f, 30));
-                room.AddObject(new Explosion.ExplosionLight(pos, 320f, 1f, 5, Color.white));
-
-                room.PlaySound(SoundID.Firecracker_Bang, creature.mainBodyChunk, loop: false, 1f, 0.5f + Random.value);
-                room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, creature.mainBodyChunk, loop: false, 1f, 1.25f + Random.value * 1.25f);
-
-                if (IsMeadowEnabled())
+                if (Utils.IsMeadowEnabled())
                 {
                     ASMeadowUtils.TryReviveCreature(creature, () => ReviveCreature(creature, ClientOptions.revivalHealthFactor));
+                    ASMeadowUtils.RequestAscensionEffectsSync(creature);
+
+                    ASMeadowUtils.LogSystemMessage($"{creature.Template.name} was revived by {ASMeadowUtils.PlayerName}.");
                 }
                 else
                 {
                     ReviveCreature(creature, ClientOptions.revivalHealthFactor);
+
+                    SpawnAscensionEffects(creature);
                 }
 
                 creature.Stun(120);
@@ -48,9 +47,18 @@ namespace AscendedSaint.Attunement
             {
                 ASLogger.LogInfo("Ascend! " + creature.Template.name);
 
-                room.AddObject(new ShockWave(pos, 150f, 0.25f, 20));
-
                 creature.Die();
+
+                if (Utils.IsMeadowEnabled())
+                {
+                    ASMeadowUtils.RequestAscensionEffectsSync(creature);
+
+                    ASMeadowUtils.LogSystemMessage($"{ASMeadowUtils.PlayerName} self-ascended.");
+                }
+                else
+                {
+                    SpawnAscensionEffects(creature, isRevival: false);
+                }
             }
         }
 
@@ -68,19 +76,18 @@ namespace AscendedSaint.Attunement
             {
                 ASLogger.LogInfo("Return, Iterator! " + oracle.ID);
 
-                room.AddObject(new ShockWave(mainBodyChunk.pos, 350f, 0.75f, 24));
-                room.AddObject(new Explosion.ExplosionLight(mainBodyChunk.pos, 320f, 1f, 5, Color.white));
-
-                room.PlaySound(SoundID.Firecracker_Bang, mainBodyChunk, loop: false, 1f, 1.5f + Random.value);
-                room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, mainBodyChunk, loop: false, 1f, 0.5f + Random.value * 0.5f);
-
-                if (IsMeadowEnabled())
+                if (Utils.IsMeadowEnabled())
                 {
                     ASMeadowUtils.TryReviveCreature(physicalObject, () => ReviveOracle(oracle));
+                    ASMeadowUtils.RequestAscensionEffectsSync(oracle);
+
+                    ASMeadowUtils.LogSystemMessage($"{Utils.GetOracleName(oracle.ID)} was revived by {ASMeadowUtils.PlayerName}.");
                 }
                 else
                 {
                     ReviveOracle(oracle);
+
+                    SpawnAscensionEffects(oracle);
                 }
             }
             else if (physicalObject is Creature)
@@ -91,6 +98,41 @@ namespace AscendedSaint.Attunement
             {
                 ASLogger.LogWarning("Cannot ascend or revive this! " + physicalObject.ToString());
             }
+        }
+
+        /// <summary>
+        /// Spawns the special effects of Saint's new abilities.
+        /// </summary>
+        /// <param name="physicalObject">The object which was the target of this ability.</param>
+        /// <param name="isRevival">If the performed ability was a revival.</param>
+        public static void SpawnAscensionEffects(PhysicalObject physicalObject, bool isRevival = true)
+        {
+            Room room = physicalObject.room;
+            Vector2 pos = physicalObject is Creature creature ? creature.mainBodyChunk.pos : physicalObject.bodyChunks[0].pos;
+
+            if (isRevival)
+            {
+                BodyChunk bodyChunk = physicalObject is Creature creature1 ? creature1.mainBodyChunk : physicalObject.bodyChunks[0];
+                bool isOracle = physicalObject is Oracle;
+
+                float shockWaveSize = isOracle ? 350f : 200;
+                float shockWaveIntensity = isOracle ? 0.75f : 0.5f;
+                int shockWaveLifetime = isOracle ? 24 : 30;
+                float firecrackerPitch = isOracle ? 1.5f : 0.5f;
+                float markPitch = isOracle ? 0.5f : 1.25f;
+
+                room.AddObject(new ShockWave(pos, shockWaveSize, shockWaveIntensity, shockWaveLifetime));
+                room.AddObject(new Explosion.ExplosionLight(pos, 320f, 1f, 5, Color.white));
+
+                room.PlaySound(SoundID.Firecracker_Bang, bodyChunk, loop: false, 1f, firecrackerPitch + Random.value);
+                room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, bodyChunk, loop: false, 1f, markPitch + (Random.value * markPitch));
+            }
+            else
+            {
+                room.AddObject(new ShockWave(pos, 150f, 0.25f, 20));
+            }
+
+            ASLogger.LogDebug($"Spawned revival effects at {pos} for {physicalObject}.");
         }
 
         /// <summary>
@@ -114,7 +156,8 @@ namespace AscendedSaint.Attunement
                 }
                 else if (oracle.ID == Oracle.OracleID.SL)
                 {
-                    return storyGame.saveState.deathPersistentSaveData.ripMoon;
+                    return storyGame.saveState.deathPersistentSaveData.ripMoon
+                        || (oracle.oracleBehavior as SLOracleBehavior).State.neuronsLeft == 0;
                 }
             }
 
@@ -144,10 +187,7 @@ namespace AscendedSaint.Attunement
         /// <param name="creature">The creature to be removed.</param>
         internal static void RemoveFromRespawnsList(Creature creature)
         {
-            if (IsMeadowEnabled())
-            {
-                if (ASMeadowUtils.TryRemoveCreatureRespawn(creature)) return;
-            }
+            if (Utils.IsMeadowEnabled() && ASMeadowUtils.TryRemoveCreatureRespawn(creature)) return;
 
             CreatureState state = creature.abstractCreature.state;
             EntityID ID = creature.abstractCreature.ID;
@@ -223,7 +263,7 @@ namespace AscendedSaint.Attunement
                 }
 
                 oracle.mySwarmers.AddRange(myNewSwarmers);
-                
+
                 (oracle.oracleBehavior as SLOracleBehavior).State.neuronsLeft = 7;
 
                 storyGame.saveState.deathPersistentSaveData.ripMoon = false;

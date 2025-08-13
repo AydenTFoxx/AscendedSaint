@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using MoreSlugcats;
 using RWCustom;
 using UnityEngine;
+using static AscendedSaint.AscendedSaintMain;
 
 namespace AscendedSaint.Attunement
 {
@@ -10,7 +11,6 @@ namespace AscendedSaint.Attunement
     /// </summary>
     public static class SaintMechanicsHooks
     {
-        private static readonly ASOptions.ClientOptions ClientOptions = AscendedSaintMain.ClientOptions;
         private const float KARMIC_BURST_RADIUS = 60f;
 
         public static void ClassMechanicsSaintHook(On.Player.orig_ClassMechanicsSaint orig, Player self)
@@ -37,7 +37,7 @@ namespace AscendedSaint.Attunement
                     PhysicalObject physicalObject = objects[i];
                     bool shouldAscendCreature = false;
 
-                    if (!(physicalObject is Creature) && !(physicalObject is Oracle)) continue;
+                    if (!(physicalObject is Creature || physicalObject is Oracle)) continue;
 
                     foreach (BodyChunk bodyChunk in physicalObject.bodyChunks)
                     {

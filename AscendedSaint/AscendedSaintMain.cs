@@ -15,7 +15,7 @@ namespace AscendedSaint
     {
         public const string PLUGIN_GUID = "ynhzrfxn.ascendedsaint";
         public const string PLUGIN_NAME = "Ascended Saint";
-        public const string PLUGIN_VERSION = "1.2.1";
+        public const string PLUGIN_VERSION = "1.2.3";
         private const string RAIN_MEADOW_ID = "henpemaz_rainmeadow";
 
         private static bool isInitialized = false;
@@ -98,6 +98,8 @@ namespace AscendedSaint
             orig.Invoke(self, game);
 
             ClientOptions.RefreshOptions();
+
+            ASLogger.LogDebug($"Client options are: {ClientOptions}");
         }
 
         /// <summary>
@@ -122,6 +124,25 @@ namespace AscendedSaint
                 }
 
                 return isMeadowEnabled;
+            }
+
+            /// <summary>
+            /// Obtains an iterator's full name based on its ID.
+            /// </summary>
+            /// <param name="oracleID">The oracle ID to be tested.</param>
+            /// <returns>The iterator's name (e.g. <c>Five Pebbles</c>), or the string <c>Unknown Iterator (<paramref name="oracleID"/>)</c> if a specific name couldn't be determined.</returns>
+            /// <remarks>Custom iterators should only be added here if they are accessible and ascendable in Saint's campaign.</remarks>
+            internal static string GetOracleName(Oracle.OracleID oracleID)
+            {
+                if (oracleID == Oracle.OracleID.SL)
+                {
+                    return "Looks to the Moon";
+                }
+                else if (oracleID == Oracle.OracleID.SS)
+                {
+                    return "Five Pebbles";
+                }
+                else return $"Unknown Iterator ({oracleID})";
             }
         }
     }

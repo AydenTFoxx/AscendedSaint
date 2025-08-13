@@ -32,15 +32,13 @@ namespace AscendedSaint
                 allowRevival = ALLOW_REVIVAL.Value;
                 requireKarmaFlower = REQUIRE_KARMA_FLOWER.Value;
                 revivalHealthFactor = REVIVAL_HEALTH_FACTOR.Value * 0.01f;
-
-                ASLogger.LogDebug($"Client options are: {ToString()}");
             }
 
             /// <summary>
             /// Obtains a <c>String</c> representation of the current <c>ClientOptions</c> instance.
             /// </summary>
             /// <returns>A formatted <c>String</c> object with the client's current settings.</returns>
-            public new string ToString()
+            public override string ToString()
             {
                 return $"{base.ToString()} => [AR: {allowRevival}; ASA: {allowSelfAscension}; RKF: {requireKarmaFlower}; RHF: {revivalHealthFactor}]";
             }
