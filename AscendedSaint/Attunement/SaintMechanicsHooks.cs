@@ -37,7 +37,7 @@ namespace AscendedSaint.Attunement
                     PhysicalObject physicalObject = objects[i];
                     bool shouldAscendCreature = false;
 
-                    if (!(physicalObject is Creature) && !(physicalObject is Oracle)) continue;
+                    if (!(physicalObject is Creature || physicalObject is Oracle)) continue;
 
                     foreach (BodyChunk bodyChunk in physicalObject.bodyChunks)
                     {

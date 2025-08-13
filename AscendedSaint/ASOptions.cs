@@ -38,7 +38,7 @@ namespace AscendedSaint
             /// Obtains a <c>String</c> representation of the current <c>ClientOptions</c> instance.
             /// </summary>
             /// <returns>A formatted <c>String</c> object with the client's current settings.</returns>
-            public new string ToString()
+            public override string ToString()
             {
                 return $"{base.ToString()} => [AR: {allowRevival}; ASA: {allowSelfAscension}; RKF: {requireKarmaFlower}; RHF: {revivalHealthFactor}]";
             }
