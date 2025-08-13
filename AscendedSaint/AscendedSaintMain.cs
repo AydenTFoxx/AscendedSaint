@@ -15,7 +15,7 @@ namespace AscendedSaint
     {
         public const string PLUGIN_GUID = "ynhzrfxn.ascendedsaint";
         public const string PLUGIN_NAME = "Ascended Saint";
-        public const string PLUGIN_VERSION = "1.2.1";
+        public const string PLUGIN_VERSION = "1.2.2";
         private const string RAIN_MEADOW_ID = "henpemaz_rainmeadow";
 
         private static bool isInitialized = false;
@@ -98,6 +98,8 @@ namespace AscendedSaint
             orig.Invoke(self, game);
 
             ClientOptions.RefreshOptions();
+
+            ASLogger.LogDebug($"Client options are: {ClientOptions.ToString()}");
         }
 
         /// <summary>

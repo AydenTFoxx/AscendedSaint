@@ -32,8 +32,6 @@ namespace AscendedSaint
                 allowRevival = ALLOW_REVIVAL.Value;
                 requireKarmaFlower = REQUIRE_KARMA_FLOWER.Value;
                 revivalHealthFactor = REVIVAL_HEALTH_FACTOR.Value * 0.01f;
-
-                ASLogger.LogDebug($"Client options are: {ToString()}");
             }
 
             /// <summary>

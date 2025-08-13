@@ -16,7 +16,7 @@ namespace AscendedSaint.Attunement
         /// </summary>
         public static void ApplyMeadowHooks()
         {
-            On.GameSession.ctor += GameSessionHook;
+            On.GameSession.ctor += MeadowGameSessionHook;
         }
 
         /// <summary>
@@ -24,31 +24,33 @@ namespace AscendedSaint.Attunement
         /// </summary>
         public static void RemoveMeadowHooks()
         {
-            On.GameSession.ctor -= GameSessionHook;
+            On.GameSession.ctor -= MeadowGameSessionHook;
         }
 
         /// <summary>
         /// Initializes or updates the client's settings as a new <c>SharedOptions</c> object.
         /// </summary>
         /// <remarks>If the client has joined an online lobby, a request is instead sent to the host to send its own settings to the player.</remarks>
-        private static void GameSessionHook(On.GameSession.orig_ctor orig, GameSession self, RainWorldGame game)
+        private static void MeadowGameSessionHook(On.GameSession.orig_ctor orig, GameSession self, RainWorldGame game)
         {
-            orig.Invoke(self, game);
-
             if (OnlineManager.lobby == null)
             {
-                ASLogger.LogDebug("Game session is not an online game, ignoring.");
+                ASLogger.LogDebug("Game session is not an online game, redirecting to vanilla hook.");
 
-                ClientOptions.RefreshOptions();
+                AscendedSaintMain.VanillaGameSessionHook(orig, self, game);
 
                 return;
             }
+
+            orig.Invoke(self, game);
 
             if (OnlineManager.lobby.isOwner)
             {
                 ASLogger.LogDebug("Player is host, creating new SharedOptions object with REMIX settings.");
 
                 ClientOptions = new SharedOptions();
+
+                ASLogger.LogDebug($"Shared options are: {ClientOptions.ToString()}");
             }
             else
             {
