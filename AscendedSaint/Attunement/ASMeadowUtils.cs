@@ -11,7 +11,19 @@ namespace AscendedSaint.Attunement
     /// </summary>
     public class ASMeadowUtils
     {
-        public static string PlayerName => OnlineManager.mePlayer.id.GetPersonaName();
+        public static string _playerName;
+        public static string PlayerName
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(_playerName))
+                {
+                    _playerName = OnlineManager.mePlayer.id.GetPersonaName();
+                }
+
+                return _playerName;
+            }
+        }
 
         /// <summary>
         /// Holds weak references to previously queried <c>OnlinePhysicalEntity</c> instances. If a query is made for a key which is present here, its value is returned instead.
