@@ -61,6 +61,16 @@ namespace AscendedSaint
         }
 
         /// <summary>
+        /// Logs a <c>Message</c>-level message to the game and this mod's loggers.
+        /// </summary>
+        /// <param name="message">The message to be written.</param>
+        /// <seealso cref="Log"/>
+        public static void LogMessage(string message)
+        {
+            Log(LogLevel.Message, message, useUnityLogger: true);
+        }
+
+        /// <summary>
         /// Logs a <c>Warning</c>-level message to the game and this mod's loggers.
         /// </summary>
         /// <param name="message">The message to be written.</param>

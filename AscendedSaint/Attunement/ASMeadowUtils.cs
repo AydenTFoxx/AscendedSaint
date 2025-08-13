@@ -2,31 +2,28 @@ using RainMeadow;
 using System;
 using System.Runtime.CompilerServices;
 using static AscendedSaint.Attunement.ASUtils;
+using static AscendedSaint.AscendedSaintMain;
 
 namespace AscendedSaint.Attunement
 {
     /// <summary>
     /// A set of Meadow-compatible utility functions to ensure proper sync across all clients.
     /// </summary>
-    public static class ASMeadowUtils
+    public class ASMeadowUtils
     {
-        private static ASOptions.ClientOptions ClientOptions = AscendedSaintMain.ClientOptions;
+        public static string PlayerName => OnlineManager.mePlayer.id.GetPersonaName();
 
         /// <summary>
-        /// Holds weak references to previously queried <c>OnlinePhysicalEntity</c>s, so they do not have to be queried again.
+        /// Holds weak references to previously queried <c>OnlinePhysicalEntity</c> instances. If a query is made for a key which is present here, its value is returned instead.
         /// </summary>
-        private static readonly ConditionalWeakTable<PhysicalObject, OnlinePhysicalObject> _cachedOnlineObjects = new ConditionalWeakTable<PhysicalObject, OnlinePhysicalObject>();
-        /// <summary>
-        /// Holds weak references to previously queried <c>WorldSession</c>s, so they do not have to be queried again.
-        /// </summary>
-        private static readonly ConditionalWeakTable<PhysicalObject, WorldSession> _cachedWorldSessions = new ConditionalWeakTable<PhysicalObject, WorldSession>();
+        private static readonly ConditionalWeakTable<PhysicalObject, object> _cachedOnlineObjects = new ConditionalWeakTable<PhysicalObject, object>();
 
         /// <summary>
         /// Obtains the <c>OnlinePhysicalObject</c>-equivalent instance of the given <c>PhysicalObject</c>.
         /// </summary>
         /// <param name="self">The <c>PhysicalObject</c> to be queried.</param>
         /// <returns>The <c>OnlinePhysicalObject</c> which represents the given input, or <c>null</c> if none is found.</returns>
-        public static OnlinePhysicalObject GetOnlinePhysicalObject(this PhysicalObject self) => _cachedOnlineObjects.GetValue(self, QueryOnlinePhysicalEntity);
+        public static OnlinePhysicalObject GetOnlinePhysicalObject(PhysicalObject self) => (OnlinePhysicalObject) _cachedOnlineObjects.GetValue(self, QueryOnlinePhysicalEntity);
 
         /// <summary>
         /// Queries the world's active entities in order to find a given <c>PhysicalObject</c> instance.
@@ -35,7 +32,7 @@ namespace AscendedSaint.Attunement
         /// <returns>The <c>OnlinePhysicalObject</c> which represents the given input, or <c>null</c> if none is found.</returns>
         private static OnlinePhysicalObject QueryOnlinePhysicalEntity(PhysicalObject physicalObject)
         {
-            WorldSession worldSession = GetWorldSession(physicalObject);
+            WorldSession worldSession = QueryWorldSession(physicalObject);
 
             if (worldSession == null)
             {
@@ -54,13 +51,6 @@ namespace AscendedSaint.Attunement
 
             return null;
         }
-
-        /// <summary>
-        /// Obtains the <c>WorldSession</c> instance where the given <c>PhysicalObject</c> is found at.
-        /// </summary>
-        /// <param name="self">The <c>PhysicalObject</c> to be queried.</param>
-        /// <returns>The object's <c>WorldSession</c> instance, or <c>null</c> if none is found.</returns>
-        public static WorldSession GetWorldSession(this PhysicalObject self) => _cachedWorldSessions.GetValue(self, QueryWorldSession);
 
         /// <summary>
         /// Obtains the <c>WorldSession</c> instance where the given <c>PhysicalObject</c> is found at.
@@ -108,7 +98,7 @@ namespace AscendedSaint.Attunement
             {
                 ASLogger.LogDebug("Game session is not an online game, redirecting to vanilla hook.");
 
-                AscendedSaintMain.VanillaGameSessionHook(orig, self, game);
+                VanillaGameSessionHook(orig, self, game);
 
                 return;
             }
@@ -121,7 +111,7 @@ namespace AscendedSaint.Attunement
 
                 ClientOptions = new SharedOptions();
 
-                ASLogger.LogDebug($"Shared options are: {ClientOptions.ToString()}");
+                ASLogger.LogDebug($"Shared options are: {ClientOptions}");
             }
             else
             {
@@ -131,6 +121,17 @@ namespace AscendedSaint.Attunement
 
                 hostPlayer.InvokeOnceRPC(typeof(ASRPCs).GetMethod("RequestRemixSync").CreateDelegate(typeof(Action<OnlinePlayer>)), OnlineManager.mePlayer);
             }
+        }
+
+        /// <summary>
+        /// Logs a message to Rain Meadow's chat (as the system) and to this mod's log file.
+        /// </summary>
+        /// <param name="message">The message to be sent to all players.</param>
+        public static void LogSystemMessage(string message)
+        {
+            ChatLogManager.LogSystemMessage(message);
+
+            ASLogger.LogMessage($"-> {message}");
         }
 
         /// <summary>
@@ -183,20 +184,19 @@ namespace AscendedSaint.Attunement
         /// </summary>
         /// <param name="physicalObject">The physical object which was ascended or revived.</param>
         /// <remarks>If the player is not in an online lobby, this has the same effects as calling <see cref="SpawnAscensionEffects(PhysicalObject, bool)"/></remarks>
-        public static void RequestAscensionEffectsSync(PhysicalObject physicalObject)
+        public static void RequestAscensionEffectsSync(PhysicalObject physicalObject, bool isRevival = true)
         {
-            if (OnlineManager.lobby == null)
+            if (OnlineManager.lobby != null)
             {
-                SpawnAscensionEffects(physicalObject);
-                return;
+                foreach (OnlinePlayer onlinePlayer in OnlineManager.players)
+                {
+                    if (onlinePlayer.isMe) continue;
+
+                    onlinePlayer.InvokeOnceRPC(typeof(ASRPCs).GetMethod("SyncAscensionEffects").CreateDelegate(typeof(Action<OnlinePhysicalObject>)), GetOnlinePhysicalObject(physicalObject));
+                }
             }
 
-            foreach (OnlinePlayer onlinePlayer in OnlineManager.players)
-            {
-                if (onlinePlayer.isMe) continue;
-
-                onlinePlayer.InvokeOnceRPC(typeof(ASRPCs).GetMethod("SyncAscensionEffects").CreateDelegate(typeof(Action<OnlinePhysicalObject>)), GetOnlinePhysicalObject(physicalObject));
-            }
+            SpawnAscensionEffects(physicalObject, isRevival);
         }
 
         /// <summary>
@@ -251,7 +251,7 @@ namespace AscendedSaint.Attunement
                     return;
                 }
 
-                SpawnAscensionEffects(onlineObject.apo.realizedObject);
+                SpawnAscensionEffects(onlineObject.apo.realizedObject, isRevival: onlineObject.apo.realizedObject is Creature creature ? !creature.dead : (onlineObject.apo.realizedObject as Oracle).health > 0f);
             }
 
             /// <summary>
@@ -272,7 +272,7 @@ namespace AscendedSaint.Attunement
                 }
                 else if (physicalObject is Oracle oracle)
                 {
-                    ASLogger.LogInfo($"{GetOracleName(oracle.ID)} was revived!");
+                    ASLogger.LogInfo($"{Utils.GetOracleName(oracle.ID)} was revived!");
 
                     ReviveOracle(oracle);
                 }
@@ -301,25 +301,6 @@ namespace AscendedSaint.Attunement
                 }
 
                 ASLogger.LogInfo($"{creature} has been removed from the respawns list!");
-            }
-
-            /// <summary>
-            /// Obtains an iterator's full name based on its ID.
-            /// </summary>
-            /// <param name="oracleID">The oracle ID to be tested.</param>
-            /// <returns>The iterator's name (e.g. <c>Five Pebbles</c>), or the string <c>Unknown Iterator (<paramref name="oracleID"/>)</c> if a specific name couldn't be determined.</returns>
-            /// <remarks>Custom iterators should only be added here if they are accessible and ascendable in Saint's campaign.</remarks>
-            private static string GetOracleName(Oracle.OracleID oracleID)
-            {
-                if (oracleID == Oracle.OracleID.SL)
-                {
-                    return "Looks to the Moon";
-                }
-                else if (oracleID == Oracle.OracleID.SS)
-                {
-                    return "Five Pebbles";
-                }
-                else return $"Unknown Iterator ({oracleID})";
             }
         }
 
