@@ -11,14 +11,13 @@ namespace AscendedSaint.Attunement
     /// </summary>
     public static class ASUtils
     {
-        private static readonly ASOptions.ClientOptions ClientOptions = AscendedSaintMain.ClientOptions;
-
         /// <summary>
         /// Ascends or returns a creature back from life, depending on whether it was dead beforehand.
         /// </summary>
         /// <param name="creature">The creature to be ascended or revived.</param>
+        /// <param name="callingPlayer">The player who ascended or revived the given creature.</param>
         /// <returns><c>true</c> if the creature was successfully modified, <c>false</c> otherwise.</returns>
-        public static void AscendCreature(Creature creature)
+        public static void AscendCreature(Creature creature, Player callingPlayer)
         {
             Vector2 pos = creature.mainBodyChunk.pos;
             Room room = creature.room;
@@ -32,7 +31,7 @@ namespace AscendedSaint.Attunement
                     ASMeadowUtils.TryReviveCreature(creature, () => ReviveCreature(creature, ClientOptions.revivalHealthFactor));
                     ASMeadowUtils.RequestAscensionEffectsSync(creature);
 
-                    ASMeadowUtils.LogSystemMessage($"{creature.Template.name} was revived by {ASMeadowUtils.PlayerName}.");
+                    ASMeadowUtils.LogSystemMessage($"{(creature is Player player ? ASMeadowQueries.GetPlayerName(player) : creature.Template.name)} was revived by {ASMeadowQueries.GetPlayerName(callingPlayer)}.");
                 }
                 else
                 {
@@ -53,7 +52,7 @@ namespace AscendedSaint.Attunement
                 {
                     ASMeadowUtils.RequestAscensionEffectsSync(creature);
 
-                    ASMeadowUtils.LogSystemMessage($"{ASMeadowUtils.PlayerName} self-ascended.");
+                    ASMeadowUtils.LogSystemMessage($"{ASMeadowQueries.GetPlayerName(creature as Player)} self-ascended.");
                 }
                 else
                 {
@@ -67,7 +66,7 @@ namespace AscendedSaint.Attunement
         /// </summary>
         /// <param name="physicalObject">The object instance to be revived.</param>
         /// <returns><c>true</c> if the object was successfully modified, <c>false</c> otherwise.</returns>
-        public static void AscendCreature(PhysicalObject physicalObject)
+        public static void AscendCreature(PhysicalObject physicalObject, Player callingPlayer)
         {
             Room room = physicalObject.room;
             BodyChunk mainBodyChunk = physicalObject.bodyChunks[0];
@@ -81,7 +80,7 @@ namespace AscendedSaint.Attunement
                     ASMeadowUtils.TryReviveCreature(physicalObject, () => ReviveOracle(oracle));
                     ASMeadowUtils.RequestAscensionEffectsSync(oracle);
 
-                    ASMeadowUtils.LogSystemMessage($"{Utils.GetOracleName(oracle.ID)} was revived by {ASMeadowUtils.PlayerName}.");
+                    ASMeadowUtils.LogSystemMessage($"{Utils.GetOracleName(oracle.ID)} was revived by {ASMeadowQueries.GetPlayerName(callingPlayer)}.");
                 }
                 else
                 {
@@ -92,7 +91,7 @@ namespace AscendedSaint.Attunement
             }
             else if (physicalObject is Creature)
             {
-                AscendCreature(physicalObject as Creature);
+                AscendCreature(physicalObject as Creature, callingPlayer);
             }
             else
             {
