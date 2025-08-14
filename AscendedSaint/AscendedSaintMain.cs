@@ -35,7 +35,7 @@ namespace AscendedSaint
             On.RainWorld.OnModsInit += OnModsInitHook;
             On.RainWorld.PostModsInit += PostModsInitHook;
 
-            On.Player.ClassMechanicsSaint += SaintMechanicsHooks.ClassMechanicsSaintHook;
+            On.Player.ClassMechanicsSaint += SaintMechanicsHooks.AscensionMechanicsHook;
         }
 
         public void OnDisable()
@@ -44,7 +44,7 @@ namespace AscendedSaint
 
             isInitialized = false;
 
-            On.Player.ClassMechanicsSaint -= SaintMechanicsHooks.ClassMechanicsSaintHook;
+            On.Player.ClassMechanicsSaint -= SaintMechanicsHooks.AscensionMechanicsHook;
 
             On.RainWorld.OnModsInit -= OnModsInitHook;
             On.RainWorld.PostModsInit -= PostModsInitHook;

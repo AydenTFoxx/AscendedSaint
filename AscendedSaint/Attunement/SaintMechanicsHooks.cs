@@ -13,7 +13,7 @@ namespace AscendedSaint.Attunement
     {
         private const float KARMIC_BURST_RADIUS = 60f;
 
-        public static void ClassMechanicsSaintHook(On.Player.orig_ClassMechanicsSaint orig, Player self)
+        public static void AscensionMechanicsHook(On.Player.orig_ClassMechanicsSaint orig, Player self)
         {
             if (self.SlugCatClass != MoreSlugcatsEnums.SlugcatStatsName.Saint ||
                 !self.monkAscension || (self.killFac + 0.025f) < 1f)
@@ -22,18 +22,13 @@ namespace AscendedSaint.Attunement
                 return;
             }
 
-            bool didAscendPlayer = false;
             Vector2 vector2 = new Vector2(self.mainBodyChunk.pos.x + self.burstX,
                 self.mainBodyChunk.pos.y + self.burstY + 60f);
 
             foreach (List<PhysicalObject> objects in self.room.physicalObjects)
             {
-                if (didAscendPlayer) break;
-
                 for (int i = 0; i < objects.Count; i++)
                 {
-                    if (didAscendPlayer) break;
-
                     PhysicalObject physicalObject = objects[i];
                     bool shouldAscendCreature = false;
 
@@ -53,46 +48,49 @@ namespace AscendedSaint.Attunement
 
                     if (!shouldAscendCreature) continue;
 
-                    if (ASUtils.CanReviveCreature(physicalObject) && ClientOptions.allowRevival)
-                    {
-                        ASLogger.LogDebug("Attempting to revive: " + physicalObject);
-
-                        if (ClientOptions.requireKarmaFlower)
-                        {
-                            PhysicalObject karmaFlower = ASUtils.GetHeldKarmaFlower(self);
-
-                            if (karmaFlower == null) continue;
-
-                            karmaFlower.Destroy();
-                        }
-
-                        self.killFac = 0f;
-
-                        orig.Invoke(self);
-
-                        ASUtils.AscendCreature(physicalObject);
-
-                        self.DeactivateAscension();
-                        self.SaintStagger(80);
-
-                        return;
-                    }
-                    else if (physicalObject == self && ClientOptions.allowSelfAscension)
-                    {
-                        ASLogger.LogDebug("Attempting to ascend: " + self.SlugCatClass);
-
-                        ASUtils.AscendCreature(physicalObject as Player);
-
-                        didAscendPlayer = true;
-                    }
+                    ApplyNewSaintMechanics(self, physicalObject);
                 }
             }
 
-            if (didAscendPlayer) self.voidSceneTimer = 1;
-
             orig.Invoke(self);
+        }
 
-            if (didAscendPlayer) self.voidSceneTimer = 0;
+        public static void ApplyNewSaintMechanics(Player self, PhysicalObject physicalObject)
+        {
+            if (!(physicalObject is Creature || physicalObject is Oracle)) return;
+
+            if (ASUtils.CanReviveCreature(physicalObject) && ClientOptions.allowRevival)
+            {
+                ASLogger.LogDebug("Attempting to revive: " + physicalObject);
+
+                if (ClientOptions.requireKarmaFlower)
+                {
+                    PhysicalObject karmaFlower = ASUtils.GetHeldKarmaFlower(self);
+
+                    if (karmaFlower is null)
+                    {
+                        ASLogger.LogDebug("Player has no Karma Flower, ignoring.");
+                        return;
+                    }
+
+                    karmaFlower.Destroy();
+                }
+
+                self.killFac = 0f;
+
+                ASUtils.AscendCreature(physicalObject, self);
+
+                self.DeactivateAscension();
+                self.SaintStagger(80);
+            }
+            else if (physicalObject == self && ClientOptions.allowSelfAscension)
+            {
+                ASLogger.LogDebug("Attempting to ascend: " + self.SlugCatClass);
+
+                ASUtils.AscendCreature(physicalObject as Player, self);
+
+                self.voidSceneTimer = 1;
+            }
         }
     }
 }
