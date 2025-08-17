@@ -2,32 +2,76 @@
 
     <PropertyGroup>
         <TargetFramework>net48</TargetFramework>
+        <LangVersion>13</LangVersion>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <PostBuildEvent>copy $(MSBuildProjectDirectory)\bin\$(Configuration)\AscendedSaint.dll $(MSBuildProjectDirectory)\..\mod\plugins</PostBuildEvent>
+    </PropertyGroup>
 
-        <PostBuildEvent>copy %HOMEPATH%\Projects\Rider\YNHZRFXN\AscendedSaint\bin\Release\net48\AscendedSaint.dll %HOMEPATH%\Projects\Rider\YNHZRFXN\mod\plugins</PostBuildEvent>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+        <DebugType>full</DebugType>
+        <DebugSymbols>true</DebugSymbols>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+        <DebugType>pdbonly</DebugType>
+        <Optimize>true</Optimize>
     </PropertyGroup>
 
     <ItemGroup>
-      <Reference Include="Assemby-CSharp-firstpass">
-        <HintPath>..\..\RW_Deps\RainWorld_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
-      </Reference>
-      <Reference Include="Assembly-CSharp">
-        <HintPath>..\..\RW_Deps\BepInEx\utils\PUBLIC-Assembly-CSharp.dll</HintPath>
-      </Reference>
-      <Reference Include="BepInEx">
-        <HintPath>..\..\RW_Deps\BepInEx\core\BepInEx.dll</HintPath>
-      </Reference>
-      <Reference Include="HOOKS-Assembly-CSharp">
-        <HintPath>..\..\RW_Deps\BepInEx\plugins\HOOKS-Assembly-CSharp.dll</HintPath>
-      </Reference>
-      <Reference Include="RainMeadow">
-        <HintPath>..\..\RW_Deps\Meadow\RainMeadow.dll</HintPath>
-      </Reference>
-      <Reference Include="UnityEngine">
-        <HintPath>..\..\RW_Deps\RainWorld_Data\Managed\UnityEngine.dll</HintPath>
-      </Reference>
-      <Reference Include="UnityEngine.CoreModule">
-        <HintPath>..\..\RW_Deps\RainWorld_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
-      </Reference>
+        <Reference Include="Assemby-CSharp-firstpass">
+            <HintPath>lib\RainWorld_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
+        </Reference>
+        <Reference Include="Assembly-CSharp">
+            <HintPath>lib\BepInEx\utils\PUBLIC-Assembly-CSharp.dll</HintPath>
+        </Reference>
+        <Reference Include="BepInEx">
+            <HintPath>lib\BepInEx\core\BepInEx.dll</HintPath>
+        </Reference>
+        <Reference Include="HOOKS-Assembly-CSharp">
+            <HintPath>lib\BepInEx\plugins\HOOKS-Assembly-CSharp.dll</HintPath>
+        </Reference>
+        <Reference Include="Mono.Cecil">
+            <HintPath>lib\RainWorld_Data\Managed\Mono.Cecil.dll</HintPath>
+        </Reference>
+        <Reference Include="Mono.Cecil.Mdb">
+            <HintPath>lib\RainWorld_Data\Managed\Mono.Cecil.Mdb.dll</HintPath>
+        </Reference>
+        <Reference Include="Mono.Cecil.Pdb">
+            <HintPath>lib\RainWorld_Data\Managed\Mono.Cecil.Pdb.dll</HintPath>
+        </Reference>
+        <Reference Include="Mono.Cecil.Rocks">
+            <HintPath>lib\RainWorld_Data\Managed\Mono.Cecil.Rocks.dll</HintPath>
+        </Reference>
+        <Reference Include="MonoMod.Common">
+            <HintPath>lib\RainWorld_Data\Managed\MonoMod.Common.dll</HintPath>
+        </Reference>
+        <Reference Include="MonoMod.RuntimeDetour">
+            <HintPath>lib\RainWorld_Data\Managed\MonoMod.RuntimeDetour.dll</HintPath>
+        </Reference>
+        <Reference Include="MonoMod.Utils">
+            <HintPath>lib\RainWorld_Data\Managed\MonoMod.Utils.dll</HintPath>
+        </Reference>
+        <Reference Include="Rain Meadow">
+            <HintPath>lib\Rain Meadow.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine">
+            <HintPath>lib\RainWorld_Data\Managed\UnityEngine.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.CoreModule">
+            <HintPath>lib\RainWorld_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Remove="lib\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Remove="lib\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Remove="lib\**" />
     </ItemGroup>
 
 </Project>
