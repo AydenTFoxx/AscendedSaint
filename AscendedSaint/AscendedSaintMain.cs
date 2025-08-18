@@ -87,8 +87,10 @@ public class AscendedSaintMain : BaseUnityPlugin
     {
         try
         {
-            IL.VoidSea.VoidWorm.MainWormBehavior.Update += VoidSeaHooks.EnableCustomAscensionILHook;
-            IL.VoidSea.VoidSeaScene.ctor += VoidSeaHooks.SpawnTheEggAsSaintILHook;
+            IL.VoidSea.VoidWorm.MainWormBehavior.Update += VoidSeaHooks.InvertSaintAscensionILHook;
+            IL.VoidSea.VoidSeaScene.UpdatePlayerInVoidSea += VoidSeaHooks.UpdateSaintEggPhaseILHook;
+            IL.VoidSea.VoidSeaScene.SaintEndUpdate += VoidSeaHooks.IgnoreMethodILHook;
+
             IL.Player.ClassMechanicsSaint += SaintMechanicsHooks.AscensionMechanicsILHook;
 
             On.RainWorld.OnModsInit += OnModsInitHook;
@@ -106,8 +108,10 @@ public class AscendedSaintMain : BaseUnityPlugin
     {
         try
         {
-            IL.VoidSea.VoidWorm.MainWormBehavior.Update -= VoidSeaHooks.EnableCustomAscensionILHook;
-            IL.VoidSea.VoidSeaScene.ctor += VoidSeaHooks.SpawnTheEggAsSaintILHook;
+            IL.VoidSea.VoidWorm.MainWormBehavior.Update -= VoidSeaHooks.InvertSaintAscensionILHook;
+            IL.VoidSea.VoidSeaScene.UpdatePlayerInVoidSea -= VoidSeaHooks.UpdateSaintEggPhaseILHook;
+            IL.VoidSea.VoidSeaScene.SaintEndUpdate -= VoidSeaHooks.IgnoreMethodILHook;
+
             IL.Player.ClassMechanicsSaint -= SaintMechanicsHooks.AscensionMechanicsILHook;
 
             On.RainWorld.OnModsInit -= OnModsInitHook;

@@ -26,7 +26,7 @@ public static class SaintMechanicsHooks
         ILLabel target = null;
 
         c.GotoNext(x => x.MatchStloc(18), x => x.MatchLdloc(18));
-        c.GotoNext(x => x.MatchBeq(out var _));
+        c.GotoNext(x => x.MatchBeq(out _));
         c.MoveAfterLabels();
 
         // Target: if (physicalObject != this && ...)
@@ -37,10 +37,10 @@ public static class SaintMechanicsHooks
 
         // Result: if (physicalObject != NullifySelfReference(physicalObject, this) && ...)
 
-        c.GotoNext(x => x.MatchBrfalse(out var _));
+        c.GotoNext(x => x.MatchBrfalse(out _));
         c.GotoNext(
             MoveType.After,
-            x => x.MatchStfld(out var _)
+            x => x.MatchStfld(out _)
         );
         c.MoveAfterLabels();
 
@@ -67,7 +67,7 @@ public static class SaintMechanicsHooks
     {
         ASLogger.LogDebug($"Checking {bodyChunk.owner}...");
 
-        if ((bodyChunk.owner is not Creature && bodyChunk.owner is not Oracle) || bodyChunk.owner.GetAscensionCooldown(out var _)) return false;
+        if ((bodyChunk.owner is not Creature && bodyChunk.owner is not Oracle) || bodyChunk.owner.GetAscensionCooldown(out _)) return false;
 
         ASLogger.LogDebug($"{bodyChunk.owner} is a valid target!");
 
