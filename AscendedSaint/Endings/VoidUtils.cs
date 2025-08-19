@@ -45,7 +45,7 @@ public static class VoidUtils
     /// </summary>
     /// <param name="player">The player to be tested.</param>
     /// <returns><c>true</c> if the mod's alternate endings should play, <c>false</c> otherwise.</returns>
-    public static bool ShouldPlayAlternateEnding(Player player) => !AscendedOneIterator(player.room.game.session as StoryGameSession) && ClientOptions.dynamicEndings;
+    public static bool ShouldPlayAlternateEnding(Player player) => !AscendedOneIterator(player?.room.game.session as StoryGameSession) && ClientOptions.dynamicEndings;
 
     /// <summary>
     /// Plays the animation of activating a Karma Shrine, optionally also setting the player's karma to its max value as well.
@@ -72,12 +72,34 @@ public static class VoidUtils
         }
     }
 
-    public class PlayerRevivalSprite(Player player) : CosmeticSprite
+    public class PlayerRevivalSprite : CosmeticSprite
     {
         private static int KillSprite => 0;
 
-        private float killFac = 0f;
-        private float lastKillFac = 0f;
+        private readonly Player player;
+
+        private float killFac;
+        private float lastKillFac;
+
+        private float effectAdd;
+        private readonly float effectInitLevel;
+        private readonly RoomSettings.RoomEffect meltEffect;
+
+        public PlayerRevivalSprite(Player player)
+        {
+            this.player = player;
+            room = player.room;
+
+            for (int i = 0; i < room.roomSettings.effects.Count; i++)
+            {
+                if (room.roomSettings.effects[i].type == RoomSettings.RoomEffect.Type.VoidMelt)
+                {
+                    meltEffect = room.roomSettings.effects[i];
+                    effectInitLevel = meltEffect.amount;
+                    return;
+                }
+            }
+        }
 
         public override void Update(bool eu)
         {
@@ -100,9 +122,18 @@ public static class VoidUtils
 
                     RestorePlayerKarma(player);
 
-                    player.room.AddObject(new GhostHunch(player.room, null));
+                    effectAdd = 3f;
 
                     (player.room.game.session as StoryGameSession).saveState.deathPersistentSaveData.theMark = true;
+                }
+            }
+            else if (effectAdd > 0f)
+            {
+                effectAdd = Mathf.Max(0f, effectAdd - 0.03666667f);
+
+                if (meltEffect != null)
+                {
+                    meltEffect.amount = Mathf.Lerp(effectInitLevel, 1f, Custom.SCurve(effectAdd, 0.6f));
                 }
             }
             else

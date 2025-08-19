@@ -103,7 +103,7 @@ public class ASOptions : OptionInterface
             .Build();
 
         Tabs[1] = new OptionBuilder(this, "Experiments", MenuColorEffect.rgbDarkRed)
-            .AddText("These options are experimental and may cause unexpected behavior. Thread with care.", new Vector2(48f, 32f))
+            .AddText("These options are experimental and may cause unexpected behavior. Thread with care.", new Vector2(48f, 32f), color: MenuColorEffect.rgbDarkGrey)
             .AddPadding(Vector2.down * 24f)
             .AddCheckBoxOption("Custom Iterator Revival", CUSTOM_ORACLE_REVIVAL)
             .AddPadding(Vector2.down * 10f)
@@ -229,10 +229,10 @@ public class ASOptions : OptionInterface
         {
             UIelement[] UIarrayOptions =
             [
-                new OpLabel(vector2 + new Vector2(200f, 0f), size, text, FLabelAlignment.Center, bigText)
+                new OpLabel(vector2 + new Vector2(180f, 0f), size, text, FLabelAlignment.Center, bigText)
                 {
                     verticalAlignment = OpLabel.LabelVAlignment.Center,
-                    color = color == default ? Color.white : color
+                    color = color == default ? MenuColorEffect.rgbMediumGrey : color
                 }
             ];
 
