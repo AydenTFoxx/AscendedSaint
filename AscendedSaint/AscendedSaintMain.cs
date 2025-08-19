@@ -87,9 +87,10 @@ public class AscendedSaintMain : BaseUnityPlugin
     {
         try
         {
+            IL.VoidSea.PlayerGhosts.Ghost.Update += VoidSeaHooks.RemoveSaintGhostsILHook;
             IL.VoidSea.VoidWorm.MainWormBehavior.Update += VoidSeaHooks.InvertSaintAscensionILHook;
-            IL.VoidSea.VoidSeaScene.UpdatePlayerInVoidSea += VoidSeaHooks.UpdateSaintEggPhaseILHook;
-            IL.VoidSea.VoidSeaScene.SaintEndUpdate += VoidSeaHooks.IgnoreMethodILHook;
+            IL.VoidSea.VoidSeaScene.UpdatePlayerInVoidSea += VoidSeaHooks.UpdateSaintInVoidSeaILHook;
+            IL.VoidSea.VoidSeaScene.SaintEndUpdate += VoidSeaHooks.IgnoreSaintEndUpdateILHook;
 
             IL.Player.ClassMechanicsSaint += SaintMechanicsHooks.AscensionMechanicsILHook;
 
@@ -108,9 +109,10 @@ public class AscendedSaintMain : BaseUnityPlugin
     {
         try
         {
+            IL.VoidSea.PlayerGhosts.Ghost.Update -= VoidSeaHooks.RemoveSaintGhostsILHook;
             IL.VoidSea.VoidWorm.MainWormBehavior.Update -= VoidSeaHooks.InvertSaintAscensionILHook;
-            IL.VoidSea.VoidSeaScene.UpdatePlayerInVoidSea -= VoidSeaHooks.UpdateSaintEggPhaseILHook;
-            IL.VoidSea.VoidSeaScene.SaintEndUpdate -= VoidSeaHooks.IgnoreMethodILHook;
+            IL.VoidSea.VoidSeaScene.UpdatePlayerInVoidSea -= VoidSeaHooks.UpdateSaintInVoidSeaILHook;
+            IL.VoidSea.VoidSeaScene.SaintEndUpdate -= VoidSeaHooks.IgnoreSaintEndUpdateILHook;
 
             IL.Player.ClassMechanicsSaint -= SaintMechanicsHooks.AscensionMechanicsILHook;
 
@@ -176,24 +178,13 @@ public class AscendedSaintMain : BaseUnityPlugin
         /// <param name="oracleID">The oracle ID to be tested.</param>
         /// <returns>The iterator's name (e.g. <c>Five Pebbles</c>), or the string <c>Unknown Iterator (<paramref name="oracleID"/>)</c> if a specific name couldn't be determined.</returns>
         /// <remarks>Custom iterators should only be added here if they are accessible and ascendable in Saint's campaign.</remarks>
-        internal static string GetOracleName(Oracle.OracleID oracleID)
-        {
-            if (oracleID == Oracle.OracleID.SL || oracleID == MoreSlugcatsEnums.OracleID.DM)
-            {
-                return "Looks to the Moon";
-            }
-            else if (oracleID == Oracle.OracleID.SS || oracleID == MoreSlugcatsEnums.OracleID.CL)
-            {
-                return "Five Pebbles";
-            }
-            else if (oracleID == MoreSlugcatsEnums.OracleID.ST)
-            {
-                return "Sliver of Straw"; // Would you de-ascend Sliver of Straw?
-            }
-            else
-            {
-                return $"Unknown Iterator ({oracleID})";
-            }
-        }
+        internal static string GetOracleName(Oracle.OracleID oracleID) =>
+            oracleID == Oracle.OracleID.SL
+            ? "Looks to the Moon"
+            : oracleID == MoreSlugcatsEnums.OracleID.CL
+                ? "Five Pebbles"
+                : oracleID == MoreSlugcatsEnums.OracleID.ST
+                    ? "Sliver of Straw" // Would you de-ascend Sliver of Straw?
+                    : $"Unknown Iterator ({oracleID})";
     }
 }
