@@ -77,7 +77,7 @@ public static partial class VoidSeaHooks
     }
 
     /// <summary>
-    /// Overrides the usual check for placing the Egg so it can be properly added in Saint's ascension.
+    /// Overrides the usual check for placing the Egg so it can be at the correct height in Saint's ascension.
     /// </summary>
     public static void UpdateSaintInVoidSeaILHook(ILContext context)
     {
