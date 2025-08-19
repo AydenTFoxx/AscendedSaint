@@ -12,10 +12,21 @@ public static class SaintMechanicsHooks
 {
     private static readonly ConditionalWeakTable<PhysicalObject, AscensionCooldown> _revivedCreatures = new();
 
+    /// <summary>
+    /// Determines and retrieves a given creature's ascension cooldown value, if any.
+    /// </summary>
+    /// <param name="self">The creature or object itself.</param>
+    /// <param name="result">The retrieved cooldown value, if any.</param>
+    /// <returns><c>true</c> if a value was retrieved, <c>false</c> otherwise.</returns>
     public static bool GetAscensionCooldown(this PhysicalObject self, out AscensionCooldown result) => _revivedCreatures.TryGetValue(self, out result);
 
+    /// <summary>
+    /// Sets a given creature's ascension coldown value.
+    /// </summary>
+    /// <param name="self">The creature or object itself.</param>
+    /// <param name="cooldown">The cooldown to be applied.</param>
     public static void SetAscensionCooldown(this PhysicalObject self, int cooldown = 0) =>
-        self.room.AddObject(_revivedCreatures.GetValue(self, (_) => new AscensionCooldown(cooldown)));
+        self.room.AddObject(_revivedCreatures.GetValue(self, (_) => new AscensionCooldown(self, cooldown)));
 
     /// <summary>
     /// The "Trigger" phase of Saint's new abilities hook. This directly hooks into the game's runtime instructions, allowing the mod to conditionally override Saint's ascension ability behaviors.
@@ -63,23 +74,10 @@ public static class SaintMechanicsHooks
         // Result: bodyChunk.vel += Custom.RNV() * 36f; if (TryApplySaintMechanics(bodyChunk, this, flag2)) goto IL_1700;
     }
 
-    private static bool TryApplySaintMechanics(BodyChunk bodyChunk, Player self, bool didAscendCreature)
-    {
-        ASLogger.LogDebug($"Checking {bodyChunk.owner}...");
-
-        if ((bodyChunk.owner is not Creature && bodyChunk.owner is not Oracle) || bodyChunk.owner.GetAscensionCooldown(out _)) return false;
-
-        ASLogger.LogDebug($"{bodyChunk.owner} is a valid target!");
-
-        if (self.room.game.session is StoryGameSession storySession)
-        {
-            DeathPersistentSaveData saveData = storySession.saveState.deathPersistentSaveData;
-
-            ASLogger.LogDebug($"# WORLD STATE IS: [ripMoon: {saveData.ripMoon}; ripPebbles: {saveData.ripPebbles}]");
-        }
-
-        return ApplySaintMechanics(bodyChunk.owner, self, false);
-    }
+    private static bool TryApplySaintMechanics(BodyChunk bodyChunk, Player self, bool didAscendCreature) =>
+        bodyChunk.owner is Creature or Oracle
+        && !bodyChunk.owner.GetAscensionCooldown(out _)
+        && ApplySaintMechanics(bodyChunk.owner, self, didAscendCreature);
 
     /// <summary>
     /// The "Execution" phase of Saint's new abilities hook; Contains the actual code for applying new behaviors to Saint's Ascension ability (for instance, reviving creatures).
@@ -141,13 +139,44 @@ public static class SaintMechanicsHooks
     private static Player NullifySelfReference(Player self, PhysicalObject obj) => obj == self ? null : self;
 }
 
-public class AscensionCooldown(int cooldown) : UpdatableAndDeletable
+/// <summary>
+/// Represents a time limit where a creature cannot be affected by Saint's abilities.
+/// </summary>
+/// <param name="owner">The creature or object to which this cooldown will be tied.</param>
+/// <param name="cooldown">The amount of ticks the creature will be immune for.</param>
+public class AscensionCooldown(PhysicalObject owner, int cooldown) : UpdatableAndDeletable
 {
-    public int Cooldown => cooldown;
+    /// <summary>
+    /// Validates this <c>AscensionCooldown</c> instance, then return its <c>cooldown</c> value. Otherwise, returns <c>0</c>.
+    /// </summary>
+    public int Cooldown
+    {
+        get
+        {
+            if (slatedForDeletetion) return 0;
+
+            if (room is null || room.world != owner.room.world)
+            {
+                Destroy();
+                return 0;
+            }
+
+            UpdateRoom();
+            return cooldown;
+        }
+    }
+
+    public void UpdateRoom()
+    {
+        if (room == owner.room) return;
+
+        room = owner.room;
+    }
 
     public override void Update(bool eu)
     {
         base.Update(eu);
+        UpdateRoom();
 
         cooldown--;
 
@@ -156,4 +185,6 @@ public class AscensionCooldown(int cooldown) : UpdatableAndDeletable
             Destroy();
         }
     }
+
+    public override string ToString() => $"{base.ToString()} => {cooldown}t";
 }

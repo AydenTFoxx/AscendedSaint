@@ -51,7 +51,7 @@ public class ASRPCs
     [RPCMethod]
     public static void SyncAscensionEffects(OnlinePhysicalObject onlineObject)
     {
-        if (onlineObject is null || onlineObject.apo.realizedObject is not Creature or Oracle)
+        if (onlineObject is null || onlineObject.apo.realizedObject is not Creature and not Oracle)
         {
             ASLogger.LogWarning("Got a request to sync the ascension of an invalid creature!");
             return;
