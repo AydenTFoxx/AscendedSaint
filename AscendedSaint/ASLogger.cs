@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.IO;
 using BepInEx.Logging;
+using UnityEngine;
 using static AscendedSaint.AscendedSaintMain.Utils;
 
 namespace AscendedSaint;
@@ -19,7 +20,7 @@ internal static class ASLogger
         {
             if (string.IsNullOrEmpty(_logPath))
             {
-                _logPath = Path.Combine(Path.GetFullPath(Kittehface.Framework20.UserData.GetPersistentDataPath()), "AscendedSaint.log.txt");
+                _logPath = Path.Combine(Path.GetFullPath(Application.persistentDataPath), "AscendedSaint.log.txt");
             }
 
             return _logPath;
@@ -37,7 +38,7 @@ internal static class ASLogger
     {
         WriteToLogFile(FormatMessage(message, logLevel));
 
-        if (useUnityLogger) UnityEngine.Debug.Log(FormatMessage(message, logLevel, addNewLine: false, addDateTime: false));
+        if (useUnityLogger) Debug.Log(FormatMessage(message, logLevel, addNewLine: false, addDateTime: false));
     }
 
     /// <summary>
@@ -70,7 +71,7 @@ internal static class ASLogger
     {
         Log(LogLevel.Warning, message, useUnityLogger: false);
 
-        UnityEngine.Debug.LogWarning(FormatMessage(message, LogLevel.Warning, addNewLine: false, addDateTime: false));
+        Debug.LogWarning(FormatMessage(message, LogLevel.Warning, addNewLine: false, addDateTime: false));
     }
 
     /// <summary>
@@ -83,7 +84,7 @@ internal static class ASLogger
     {
         Log(LogLevel.Error, FormatErrorMessage(message, exception), useUnityLogger: false);
 
-        UnityEngine.Debug.LogError(FormatMessage($"{message} (See details at log file)", LogLevel.Error, addNewLine: false, addDateTime: false));
+        Debug.LogError(FormatMessage($"{message} (See details at log file)", LogLevel.Error, addNewLine: false, addDateTime: false));
     }
 
     /// <summary>
