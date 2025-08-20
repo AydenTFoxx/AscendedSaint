@@ -1,0 +1,21 @@
+{
+    "id": "ynhzrfxn.controllib",
+    "name": "ControlLib",
+    "version": "1.0.0",
+    "target_game_version": "v1.10.4",
+    "authors": "YannahTFoxx",
+    "description": "",
+    "requirements": [
+        "moreslugcats",
+        "improved-input-config"
+    ],
+    "requirements_names": [
+        "More Slugcats",
+        "Improved Input Config"
+    ],
+    "priorities": [],
+    "tags": [
+        "Game Mechanics",
+        "Downpour"
+    ]
+}
