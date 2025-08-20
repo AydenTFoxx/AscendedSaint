@@ -4,22 +4,43 @@ using MonoMod.Cil;
 
 namespace ControlLib.Possession;
 
+/// <summary>
+/// A collection of hooks for updating creatures' possession states.
+/// </summary>
 public static class PossessionHooks
 {
+    /// <summary>
+    /// Applies the Possession module's hooks to the game.
+    /// </summary>
     public static void ApplyHooks()
     {
         IL.Creature.Update += UpdatePossessedCreatureILHook;
-        IL.Player.Update += UpdatePossessingPlayerILHook;
-    }
-
-    public static void RemoveHooks()
-    {
-        IL.Creature.Update -= UpdatePossessedCreatureILHook;
-        IL.Player.Update -= UpdatePossessingPlayerILHook;
+        On.Player.Update += UpdatePlayerPossessionHook;
     }
 
     /// <summary>
-    /// Overrides the game's default behavior for overriding a creature's controls so it can (potentially) support more than one player at once.
+    /// Removes the Possession module's hooks from the game.
+    /// </summary>
+    public static void RemoveHooks()
+    {
+        IL.Creature.Update -= UpdatePossessedCreatureILHook;
+        On.Player.Update -= UpdatePlayerPossessionHook;
+    }
+
+    /// <summary>
+    /// Updates the player's possession manager. If none is found, a new one is created, then updated as well.
+    /// </summary>
+    private static void UpdatePlayerPossessionHook(On.Player.orig_Update orig, Player self, bool eu)
+    {
+        orig.Invoke(self, eu);
+
+        PossessionManager manager = self.GetPossessionManager();
+
+        manager.Update();
+    }
+
+    /// <summary>
+    /// Conditionally overrides the game's default behavior for taking control of creatures in Safari Mode.
     /// Also adds basic behaviors for validating a creature's possession state.
     /// </summary>
     private static void UpdatePossessedCreatureILHook(ILContext context)
@@ -45,43 +66,19 @@ public static class PossessionHooks
     }
 
     /// <summary>
-    /// Prevents possessing players from registering inputs, while also updating their <c>PossessionState</c> values.
+    /// Updates the creature's possession state. If the possession is no longer valid, it is removed instead.
     /// </summary>
-    private static void UpdatePossessingPlayerILHook(ILContext context)
-    {
-        try
-        {
-            ILCursor c = new(context);
-
-            c.GotoNext(static x => x.MatchCall(typeof(Player).GetMethod(nameof(Player.checkInput))));
-
-            ILCursor d = new(c);
-
-            c.GotoPrev().MoveAfterLabels();
-            d.GotoNext().MoveAfterLabels();
-
-            ILLabel target = d.MarkLabel();
-
-            c.Emit(OpCodes.Ldarg_0).EmitDelegate(UpdatePlayerPossessionState);
-            c.Emit(OpCodes.Brtrue, target);
-        }
-        catch (Exception ex)
-        {
-            CLLogger.LogError($"Failed to apply hook: {nameof(UpdatePossessingPlayerILHook)}", ex);
-        }
-    }
-
+    /// <param name="self">The creature itself.</param>
+    /// <returns><c>true</c> if the game's default behavior was overriden, <c>false</c> otherwise.</returns>
     private static bool UpdateCreaturePossession(Creature self)
     {
-        if (!self.TryGetPossession(out Player player) || !player.Consious) return false;
+        if (!self.TryGetPossession(out Player player)) return false;
 
         PossessionManager manager = player.GetPossessionManager();
 
-        if (!manager.MyPossessions.ContainsKey(self))
+        if (!player.Consious || !manager.MyPossessions.ContainsKey(self))
         {
             manager.StopPossession(self);
-
-            self.UpdateCachedPossession();
 
             return false;
         }
@@ -89,22 +86,5 @@ public static class PossessionHooks
         self.SafariControlInputUpdate(player.playerState.playerNumber);
 
         return true;
-    }
-
-    private static bool UpdatePlayerPossessionState(Player self)
-    {
-        PossessionManager manager = self.GetPossessionManager();
-
-        manager.Update();
-
-        if (manager.IsPossessing)
-        {
-            for (int i = 0; i < self.input.Length; i++)
-            {
-                self.input[i] = new Player.InputPackage();
-            }
-        }
-
-        return manager.IsPossessing;
     }
 }
