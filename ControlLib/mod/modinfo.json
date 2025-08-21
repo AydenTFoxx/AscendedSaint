@@ -1,0 +1,20 @@
+{
+    "id": "ynhzrfxn.controllib",
+    "name": "ControlLib",
+    "version": "1.0.0",
+    "target_game_version": "v1.10.4",
+    "authors": "YannahTFoxx",
+    "description": "Allows control of arbitrary control of creatures using Safari Mode's controls as a backend.<LINE>Also supports multiple players controlling any given amount of creatures at once.",
+    "requirements": [
+        "moreslugcats"
+    ],
+    "requirements_names": [
+        "More Slugcats"
+    ],
+    "priorities": [],
+    "tags": [
+        "Game Mechanics",
+        "Dependency",
+        "Downpour"
+    ]
+}
