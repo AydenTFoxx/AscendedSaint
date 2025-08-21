@@ -1,6 +1,7 @@
 ﻿using System.Security.Permissions;
 using BepInEx;
 using ControlLib.Possession;
+using ControlLib.Utils;
 
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
@@ -26,6 +27,8 @@ public class ControlLibMain : BaseUnityPlugin
         CLLogger.CleanLogFile();
 
         PossessionHooks.ApplyHooks();
+
+        InputHandler.Keys.RegisterKeybinds();
 
         Logger.LogInfo("Enabled ControlLib successfully.");
     }

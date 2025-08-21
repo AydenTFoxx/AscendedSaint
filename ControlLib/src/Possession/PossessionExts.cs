@@ -78,7 +78,7 @@ public static class PossessionExts
     {
         if (_cachedPossessions.TryGetValue(self, out Player possession))
         {
-            if (!possession.GetPossessionManager().MyPossessions.ContainsKey(self))
+            if (!possession.GetPossessionManager().HasPossession(self))
             {
                 _cachedPossessions.Remove(self);
             }
@@ -87,9 +87,9 @@ public static class PossessionExts
         {
             foreach (PossessionManager manager in _possessionHolders.Values)
             {
-                if (manager.MyPossessions.TryGetValue(self, out possession))
+                if (manager.HasPossession(self))
                 {
-                    _cachedPossessions.Add(self, possession);
+                    _cachedPossessions.Add(self, manager.GetPlayer());
                 }
             }
         }

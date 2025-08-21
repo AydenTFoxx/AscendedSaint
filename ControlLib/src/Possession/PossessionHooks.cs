@@ -15,6 +15,7 @@ public static class PossessionHooks
     public static void ApplyHooks()
     {
         IL.Creature.Update += UpdatePossessedCreatureILHook;
+        On.Creature.Die += RemovePossessionHook;
         On.Player.Update += UpdatePlayerPossessionHook;
     }
 
@@ -24,7 +25,21 @@ public static class PossessionHooks
     public static void RemoveHooks()
     {
         IL.Creature.Update -= UpdatePossessedCreatureILHook;
+        On.Creature.Die -= RemovePossessionHook;
         On.Player.Update -= UpdatePlayerPossessionHook;
+    }
+
+    /// <summary>
+    /// Removes any possession this creature had before death.
+    /// </summary>
+    private static void RemovePossessionHook(On.Creature.orig_Die orig, Creature self)
+    {
+        orig.Invoke(self);
+
+        if (self.TryGetPossession(out Player player))
+        {
+            player.GetPossessionManager().StopPossession(self);
+        }
     }
 
     /// <summary>
@@ -76,7 +91,7 @@ public static class PossessionHooks
 
         PossessionManager manager = player.GetPossessionManager();
 
-        if (!player.Consious || !manager.MyPossessions.ContainsKey(self))
+        if (!manager.HasPossession(self) || !manager.IsPossessionValid(self))
         {
             manager.StopPossession(self);
 

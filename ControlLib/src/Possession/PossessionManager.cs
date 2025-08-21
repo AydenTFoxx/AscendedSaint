@@ -15,18 +15,51 @@ public class PossessionManager(Player player)
     private const int MAX_POSSESSION_TIME = 520;
 
     // TODO: Add extra data for stored creature instead of Player ref?
-    public WeakDictionary<Creature, Player> MyPossessions { get; private set; } = [];
+    private readonly WeakDictionary<Creature, Player> MyPossessions = [];
+    private Player.PlayerController controller;
+    private bool actionButtonPressed;
 
     public int PossessionCooldown { get; private set; } = 0;
     public int PossessionTime { get; private set; } = MAX_POSSESSION_TIME;
 
     public bool IsPossessing => MyPossessions.Count > 0;
 
-    private Player.PlayerController controller;
+    /// <summary>
+    /// Retrieves the player associated with this <c>PossessionManager</c> instance.
+    /// </summary>
+    /// <returns>The <c>Player</c> who owns this manager instance.</returns>
+    public Player GetPlayer() => player;
 
+    /// <summary>
+    /// Determines if the player is allowed to start a new possession.
+    /// </summary>
+    /// <returns><c>true</c> if the player can use their possession ability, <c>false</c> otherwise.</returns>
     public bool CanPossessCreature() => !IsPossessing && PossessionTime > 0 && PossessionCooldown == 0;
-    public bool CanPossessCreature(Creature target) => CanPossessCreature() && target is not null && target is not Player && !target.dead;
 
+    /// <summary>
+    /// Determines if the player can possess the given creature.
+    /// </summary>
+    /// <param name="target">The creature to be tested.</param>
+    /// <returns><c>true</c> if the player can use their possession ability, <c>false</c> otherwise.</returns>
+    public bool CanPossessCreature(Creature target) => CanPossessCreature() && target is not null && target is not Player && IsPossessionValid(target);
+
+    /// <summary>
+    /// Validates the player's possession of a given creature.
+    /// </summary>
+    /// <param name="target">The creature to be tested.</param>
+    /// <returns><c>true</c> if this possession is valid, <c>false</c> otherwise.</returns>
+    public bool IsPossessionValid(Creature target) => player.Consious && !target.dead && target.room == player.room;
+
+    /// <summary>
+    /// Determines if the player is currently possessing the given creature.
+    /// </summary>
+    /// <param name="target">The creature to be tested.</param>
+    /// <returns><c>true</c> if the player is possessing this creature, <c>false</c> otherwise.</returns>
+    public bool HasPossession(Creature target) => MyPossessions.ContainsKey(target);
+
+    /// <summary>
+    /// Removes all possessions of the player. Possessed creatures will automatically stop their own possessions.
+    /// </summary>
     public void ResetAllPossessions() => MyPossessions.Clear();
 
     /// <summary>
@@ -38,8 +71,8 @@ public class PossessionManager(Player player)
         MyPossessions.Add(target, player);
         PossessionCooldown = 20;
 
-        player.room.AddObject(new KarmicShockwave(target, target.mainBodyChunk.pos, 20, 20f, 32f));
-        player.room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, target.mainBodyChunk, loop: false, 1f, 1.5f + (Random.value * 1.25f));
+        player.room.AddObject(new ShockWave(target.mainBodyChunk.pos, 64f, 0.5f, 24));
+        player.room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, target.mainBodyChunk, loop: false, 1f, 1.25f + (Random.value * 1.25f));
 
         controller ??= player.controller;
         player.controller = new Player.NullController();
@@ -71,7 +104,7 @@ public class PossessionManager(Player player)
             }
         }
 
-        player.room.AddObject(new ShockWave(target.mainBodyChunk.pos, 20f, 0.5f, 16));
+        player.room.AddObject(new ReverseShockwave(target.mainBodyChunk.pos, 48f, 0.1f, 32));
         player.room.PlaySound(SoundID.HUD_Pause_Game, target.mainBodyChunk, loop: false, 1f, 0.5f);
 
         target.UpdateCachedPossession();
@@ -83,9 +116,13 @@ public class PossessionManager(Player player)
     /// </summary>
     public void Update()
     {
-        if (Input.GetKeyDown("c"))
+        if (InputHandler.IsKeyPressed(player, InputHandler.Keys.POSSESSION_KEY))
         {
             UpdateControls();
+        }
+        else if (actionButtonPressed)
+        {
+            actionButtonPressed = false;
         }
 
         if (IsPossessing)
@@ -118,15 +155,17 @@ public class PossessionManager(Player player)
     /// </summary>
     public void UpdateControls()
     {
+        if (actionButtonPressed) return;
+
         if (CanPossessCreature())
         {
             CLLogger.LogDebug("Checking creatures!");
 
-            player.room?.abstractRoom?.creatures?.ForEach(crit =>
+            player.room?.abstractRoom.creatures.ForEach(crit =>
             {
                 if (IsPossessing) return;
 
-                if (CanPossessCreature(crit.realizedCreature) && Random.value < 0.33)
+                if (CanPossessCreature(crit.realizedCreature))
                 {
                     try
                     {
@@ -138,16 +177,20 @@ public class PossessionManager(Player player)
                         CLLogger.LogError($"Failed to possess {crit}!", ex);
                     }
                 }
-
-                CLLogger.LogInfo($"Skipping: {crit}");
+                else
+                {
+                    CLLogger.LogInfo($"Skipping: {crit}");
+                }
             });
         }
-        else if (IsPossessing && PossessionCooldown == 0)
+        else if (IsPossessing)
         {
             CLLogger.LogInfo($"Removing all possessions of {player}!");
 
             ResetAllPossessions();
         }
+
+        actionButtonPressed = true;
     }
 
     /// <summary>
