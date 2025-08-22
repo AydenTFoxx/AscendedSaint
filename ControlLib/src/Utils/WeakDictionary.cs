@@ -13,10 +13,8 @@ public class WeakDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDisposab
     where TValue : class
 {
     private readonly object locker = new();
-    //private readonly HashSet<WeakReference> weakKeySet = new HashSet<WeakReference>(new ObjectReferenceEqualityComparer<WeakReference>());
     private ConditionalWeakTable<TKey, WeakKeyHolder> keyHolderMap = new();
     private Dictionary<WeakReference, TValue> valueMap = new(new ObjectReferenceEqualityComparer<WeakReference>());
-
 
     private class WeakKeyHolder(WeakDictionary<TKey, TValue> outer, TKey key)
     {
@@ -37,7 +35,6 @@ public class WeakDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDisposab
             if (!bAlive)
                 return;
 
-            //this.weakKeySet.Remove(weakKeyRef);
             valueMap.Remove(weakKeyRef);
         }
     }

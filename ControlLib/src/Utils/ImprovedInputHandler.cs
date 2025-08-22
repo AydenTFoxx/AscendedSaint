@@ -6,11 +6,11 @@ namespace ControlLib.Utils;
 
 public static class ImprovedInputHandler
 {
+    public static PlayerKeybind GetPlayerKeybind(string id) => PlayerKeybind.Get(id);
+
     public static bool IsKeyPressed(Player self, Keybind keybind) => IsKeyPressed(self, GetPlayerKeybind(keybind.ID));
 
     public static bool IsKeyPressed(Player self, PlayerKeybind playerKeybind) => self.RawInput()[playerKeybind];
-
-    public static PlayerKeybind GetPlayerKeybind(string id) => PlayerKeybind.Get(id);
 
     public static void RegisterPlayerKeybind(Keybind keybind) =>
         RegisterPlayerKeybind(keybind.ID, keybind.Name, keybind.KeyboardKey, keybind.GamepadKey);

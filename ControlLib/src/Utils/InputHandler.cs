@@ -10,6 +10,9 @@ public static class InputHandler
 
     public static Keybind GetKeybind(string id) => Keybinds.Find(k => k.ID == id);
 
+    public static Player.InputPackage GetVanillaInput(Player self) =>
+        RWInput.PlayerInput(self.playerState.playerNumber);
+
     public static bool IsKeyPressed(Player self, Keybind keybind) =>
         IsIICEnabled()
         ? ImprovedInputHandler.IsKeyPressed(self, keybind)
@@ -45,13 +48,13 @@ public static class InputHandler
 
     public static class Keys
     {
-        public static Keybind POSSESSION_KEY { get; private set; }
+        public static Keybind POSSESS { get; private set; }
 
         public static void RegisterKeybinds()
         {
             try
             {
-                POSSESSION_KEY = RegisterKeybind("possess", "Possess", KeyCode.C, KeyCode.Joystick1Button0);
+                POSSESS = RegisterKeybind("possess", "Possess", KeyCode.C, KeyCode.Joystick1Button0);
 
                 CLLogger.LogInfo("Successfully registered all keybinds.");
             }
@@ -63,12 +66,12 @@ public static class InputHandler
     }
 }
 
-public struct Keybind(string id, string name, KeyCode keyboardKey, KeyCode gamepadKey)
+public record class Keybind(string ID, string Name, KeyCode KeyboardKey, KeyCode GamepadKey)
 {
-    public string ID { get; private set; } = $"controllib:{id}";
-    public string Name { get; private set; } = name;
-    public KeyCode KeyboardKey { get; private set; } = keyboardKey;
-    public KeyCode GamepadKey { get; private set; } = gamepadKey;
+    public string ID { get; } = $"controllib:{ID}";
+    public string Name { get; } = Name;
+    public KeyCode KeyboardKey { get; } = KeyboardKey;
+    public KeyCode GamepadKey { get; } = GamepadKey;
 
-    public override readonly string ToString() => $"{nameof(Keybind)}: {Name} [{ID}; {KeyboardKey}|{GamepadKey}]";
+    public override string ToString() => $"{nameof(Keybind)}: {Name} [{ID}; {KeyboardKey}|{GamepadKey}]";
 }

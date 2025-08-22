@@ -10,19 +10,25 @@ namespace ControlLib.Possession;
 /// Stores and manages the player's possessed creatures.
 /// </summary>
 /// <param name="player">The player itself.</param>
-public class PossessionManager(Player player)
+public sealed class PossessionManager
 {
     private const int MAX_POSSESSION_TIME = 520;
 
-    // TODO: Add extra data for stored creature instead of Player ref?
-    private readonly WeakDictionary<Creature, Player> MyPossessions = [];
+    private readonly WeakCollection<Creature> MyPossessions = [];
+    private readonly Player player;
     private Player.PlayerController controller;
-    private bool actionButtonPressed;
 
+    public TargetSelector TargetSelector { get; private set; }
     public int PossessionCooldown { get; private set; } = 0;
     public int PossessionTime { get; private set; } = MAX_POSSESSION_TIME;
-
     public bool IsPossessing => MyPossessions.Count > 0;
+
+    public PossessionManager(Player player)
+    {
+        this.player = player;
+
+        TargetSelector = new(player, this);
+    }
 
     /// <summary>
     /// Retrieves the player associated with this <c>PossessionManager</c> instance.
@@ -41,7 +47,11 @@ public class PossessionManager(Player player)
     /// </summary>
     /// <param name="target">The creature to be tested.</param>
     /// <returns><c>true</c> if the player can use their possession ability, <c>false</c> otherwise.</returns>
-    public bool CanPossessCreature(Creature target) => CanPossessCreature() && target is not null && target is not Player && IsPossessionValid(target);
+    public bool CanPossessCreature(Creature target) =>
+        CanPossessCreature()
+        && target is not (null or Player)
+        && !target.TryGetPossession(out _)
+        && IsPossessionValid(target);
 
     /// <summary>
     /// Validates the player's possession of a given creature.
@@ -55,7 +65,7 @@ public class PossessionManager(Player player)
     /// </summary>
     /// <param name="target">The creature to be tested.</param>
     /// <returns><c>true</c> if the player is possessing this creature, <c>false</c> otherwise.</returns>
-    public bool HasPossession(Creature target) => MyPossessions.ContainsKey(target);
+    public bool HasPossession(Creature target) => MyPossessions.Contains(target);
 
     /// <summary>
     /// Removes all possessions of the player. Possessed creatures will automatically stop their own possessions.
@@ -68,7 +78,7 @@ public class PossessionManager(Player player)
     /// <param name="target">The creature to possess.</param>
     public void StartPossession(Creature target)
     {
-        MyPossessions.Add(target, player);
+        MyPossessions.Add(target);
         PossessionCooldown = 20;
 
         player.room.AddObject(new ShockWave(target.mainBodyChunk.pos, 64f, 0.5f, 24));
@@ -104,7 +114,7 @@ public class PossessionManager(Player player)
             }
         }
 
-        player.room.AddObject(new ReverseShockwave(target.mainBodyChunk.pos, 48f, 0.1f, 32));
+        player.room.AddObject(new ReverseShockwave(target.mainBodyChunk.pos, 48f, 1f, 32));
         player.room.PlaySound(SoundID.HUD_Pause_Game, target.mainBodyChunk, loop: false, 1f, 0.5f);
 
         target.UpdateCachedPossession();
@@ -116,13 +126,17 @@ public class PossessionManager(Player player)
     /// </summary>
     public void Update()
     {
-        if (InputHandler.IsKeyPressed(player, InputHandler.Keys.POSSESSION_KEY))
+        if (InputHandler.IsKeyPressed(player, InputHandler.Keys.POSSESS))
         {
-            UpdateControls();
+            TargetSelector.Update();
         }
-        else if (actionButtonPressed)
+        else
         {
-            actionButtonPressed = false;
+            if (TargetSelector.Input.IsActive && TargetSelector.IsTargetValid())
+                TargetSelector.ConfirmSelection();
+
+            if (TargetSelector.Input.LockAction)
+                TargetSelector.Input.LockAction = false;
         }
 
         if (IsPossessing)
@@ -151,47 +165,10 @@ public class PossessionManager(Player player)
     }
 
     /// <summary>
-    /// Evaluates which action to perform upon pressing the Special ability button.
+    /// Retrieves a <c>string</c> representation of this <c>PossessionManager</c> instance.
     /// </summary>
-    public void UpdateControls()
-    {
-        if (actionButtonPressed) return;
-
-        if (CanPossessCreature())
-        {
-            CLLogger.LogDebug("Checking creatures!");
-
-            player.room?.abstractRoom.creatures.ForEach(crit =>
-            {
-                if (IsPossessing) return;
-
-                if (CanPossessCreature(crit.realizedCreature))
-                {
-                    try
-                    {
-                        StartPossession(crit.realizedCreature);
-                        CLLogger.LogInfo($"{player} has possessed {crit}!");
-                    }
-                    catch (System.Exception ex)
-                    {
-                        CLLogger.LogError($"Failed to possess {crit}!", ex);
-                    }
-                }
-                else
-                {
-                    CLLogger.LogInfo($"Skipping: {crit}");
-                }
-            });
-        }
-        else if (IsPossessing)
-        {
-            CLLogger.LogInfo($"Removing all possessions of {player}!");
-
-            ResetAllPossessions();
-        }
-
-        actionButtonPressed = true;
-    }
+    /// <returns>A <c>string</c> containing the instance's values and possessions.</returns>
+    public override string ToString() => $"{nameof(PossessionManager)} => ({FormatPossessions(MyPossessions)}) [{PossessionTime}t; {PossessionCooldown}c]";
 
     /// <summary>
     /// Formats a list all of the player's possessed creatures for logging purposes.
@@ -209,10 +186,4 @@ public class PossessionManager(Player player)
 
         return stringBuilder.ToString();
     }
-
-    /// <summary>
-    /// Retrieves a <c>string</c> representation of this <c>PossessionManager</c> instance.
-    /// </summary>
-    /// <returns>A <c>string</c> containing the instance's values and possessions.</returns>
-    public override string ToString() => $"{nameof(PossessionManager)} => ({FormatPossessions(MyPossessions.Keys)}) [{PossessionTime}t; {PossessionCooldown}c]";
 }
