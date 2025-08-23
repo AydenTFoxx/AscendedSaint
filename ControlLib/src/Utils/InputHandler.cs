@@ -50,18 +50,13 @@ public static class InputHandler
     {
         public static Keybind POSSESS { get; private set; }
 
-        public static void RegisterKeybinds()
+        static Keys()
         {
-            try
-            {
-                POSSESS = RegisterKeybind("possess", "Possess", KeyCode.C, KeyCode.Joystick1Button0);
+            POSSESS = RegisterKeybind("possess", "Possess", KeyCode.C, KeyCode.Joystick1Button0);
+        }
 
-                CLLogger.LogInfo("Successfully registered all keybinds.");
-            }
-            catch (System.Exception ex)
-            {
-                CLLogger.LogError("Failed to register keybinds!", ex);
-            }
+        public static void InitKeybinds()
+        {
         }
     }
 }
