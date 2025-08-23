@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Text;
 using ControlLib.Utils;
+using MoreSlugcats;
 using RWCustom;
 using UnityEngine;
 
@@ -12,15 +13,15 @@ namespace ControlLib.Possession;
 /// <param name="player">The player itself.</param>
 public sealed class PossessionManager
 {
-    private const int MAX_POSSESSION_TIME = 520;
+    public int PossessionTimePotential { get; }
+    public int MaxPossessionTime => PossessionTimePotential + ((player.room?.game.session is StoryGameSession storySession ? storySession.saveState.deathPersistentSaveData.karma : 0) * 40);
 
     private readonly WeakCollection<Creature> MyPossessions = [];
     private readonly Player player;
-    private Player.PlayerController controller;
 
     public TargetSelector TargetSelector { get; private set; }
     public int PossessionCooldown { get; private set; } = 0;
-    public int PossessionTime { get; private set; } = MAX_POSSESSION_TIME;
+    public int PossessionTime { get; private set; }
     public bool IsPossessing => MyPossessions.Count > 0;
 
     public PossessionManager(Player player)
@@ -28,6 +29,16 @@ public sealed class PossessionManager
         this.player = player;
 
         TargetSelector = new(player, this);
+
+        PossessionTimePotential = player.SlugCatClass == SlugcatStats.Name.Yellow || player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Saint
+            ? 520
+            : player.SlugCatClass == SlugcatStats.Name.Red || player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Artificer
+                ? 180
+                : player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Sofanthiel
+                    ? 1
+                    : 360;
+
+        PossessionTime = MaxPossessionTime;
     }
 
     /// <summary>
@@ -49,9 +60,11 @@ public sealed class PossessionManager
     /// <returns><c>true</c> if the player can use their possession ability, <c>false</c> otherwise.</returns>
     public bool CanPossessCreature(Creature target) =>
         CanPossessCreature()
-        && target is not (null or Player)
+        && !IsBannedPossessionTarget(target)
         && !target.TryGetPossession(out _)
         && IsPossessionValid(target);
+
+    public static bool IsBannedPossessionTarget(Creature target) => target is null or Player or Overseer or { dead: true };
 
     /// <summary>
     /// Validates the player's possession of a given creature.
@@ -78,14 +91,33 @@ public sealed class PossessionManager
     /// <param name="target">The creature to possess.</param>
     public void StartPossession(Creature target)
     {
+        if (player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Sofanthiel && player.room is not null)
+        {
+            ScavengerBomb bomb = new(
+                new(
+                    player.room.world,
+                    AbstractPhysicalObject.AbstractObjectType.ScavengerBomb,
+                    null,
+                    player.abstractCreature.pos,
+                    player.room.world.game.GetNewID()
+                ),
+                player.room.world
+            );
+
+            bomb.abstractPhysicalObject.RealizeInRoom();
+            bomb.Explode(player.mainBodyChunk);
+
+            CLLogger.LogMessage($"Game over, {player.SlugCatClass}.");
+            return;
+        }
+
         MyPossessions.Add(target);
-        PossessionCooldown = 20;
 
-        player.room.AddObject(new ShockWave(target.mainBodyChunk.pos, 64f, 0.5f, 24));
-        player.room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, target.mainBodyChunk, loop: false, 1f, 1.25f + (Random.value * 1.25f));
+        player.room?.AddObject(new TemplarCircle(target, target.mainBodyChunk.pos, 48f, 8f, 2f, 12, true));
+        player.room?.AddObject(new ShockWave(target.mainBodyChunk.pos, 100f, 0.08f, 4, false));
+        player.room?.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, target.mainBodyChunk, loop: false, 1f, 1.25f + (Random.value * 1.25f));
 
-        controller ??= player.controller;
-        player.controller = new Player.NullController();
+        FreezePlayerControls();
 
         target.UpdateCachedPossession();
         target.abstractCreature.controlled = true;
@@ -100,22 +132,21 @@ public sealed class PossessionManager
         MyPossessions.Remove(target);
         PossessionCooldown = 20;
 
-        if (MyPossessions.Count == 0)
+        if (MyPossessions.Count < 1)
         {
-            player.controller = controller;
-            controller = null;
+            UnfreezePlayerControls();
         }
 
         if (PossessionTime == 0)
         {
             for (int k = 0; k < 20; k++)
             {
-                player.room.AddObject(new Spark(target.mainBodyChunk.pos, Custom.RNV() * Random.value * 40f, new Color(1f, 1f, 1f), null, 30, 120));
+                player.room?.AddObject(new Spark(target.mainBodyChunk.pos, Custom.RNV() * Random.value * 40f, new Color(1f, 1f, 1f), null, 30, 120));
             }
         }
 
-        player.room.AddObject(new ReverseShockwave(target.mainBodyChunk.pos, 48f, 1f, 32));
-        player.room.PlaySound(SoundID.HUD_Pause_Game, target.mainBodyChunk, loop: false, 1f, 0.5f);
+        player.room?.AddObject(new ReverseShockwave(target.mainBodyChunk.pos, 64f, 0.05f, 24));
+        player.room?.PlaySound(SoundID.HUD_Pause_Game, target.mainBodyChunk, loop: false, 1f, 0.5f);
 
         target.UpdateCachedPossession();
         target.abstractCreature.controlled = false;
@@ -130,13 +161,9 @@ public sealed class PossessionManager
         {
             TargetSelector.Update();
         }
-        else
+        else if (TargetSelector.Input.IsActive || TargetSelector.Input.LockAction)
         {
-            if (TargetSelector.Input.IsActive && TargetSelector.IsTargetValid())
-                TargetSelector.ConfirmSelection();
-
-            if (TargetSelector.Input.LockAction)
-                TargetSelector.Input.LockAction = false;
+            TargetSelector.ConfirmSelection();
         }
 
         if (IsPossessing)
@@ -147,13 +174,18 @@ public sealed class PossessionManager
 
             if (PossessionTime < 1 || !player.Consious)
             {
-                player.Stun(20);
-                player.aerobicLevel = 1f;
+                if (player.Consious)
+                {
+                    player.aerobicLevel = 1f;
+                    player.airInLungs *= 0.5f;
+                    player.exhausted = true;
+                    player.Stun(30);
+                }
 
                 ResetAllPossessions();
             }
         }
-        else if (PossessionTime < MAX_POSSESSION_TIME)
+        else if (PossessionTime < MaxPossessionTime)
         {
             PossessionTime++;
         }
@@ -163,6 +195,15 @@ public sealed class PossessionManager
             PossessionCooldown--;
         }
     }
+
+    public void FreezePlayerControls()
+    {
+        Player.InputPackage input = InputHandler.GetVanillaInput(player);
+
+        player.controller = new FadeOutController(input.x, player.standing ? 1 : input.y);
+    }
+
+    public void UnfreezePlayerControls() => player.controller = null;
 
     /// <summary>
     /// Retrieves a <c>string</c> representation of this <c>PossessionManager</c> instance.
@@ -175,7 +216,7 @@ public sealed class PossessionManager
     /// </summary>
     /// <param name="possessions">A list of the player's possessed creatures.</param>
     /// <returns>A formatted <c>string</c> listing all of the possessed creatures' names and IDs.</returns>
-    private string FormatPossessions(ICollection<Creature> possessions)
+    public static string FormatPossessions(ICollection<Creature> possessions)
     {
         StringBuilder stringBuilder = new();
 
@@ -185,5 +226,14 @@ public sealed class PossessionManager
         }
 
         return stringBuilder.ToString();
+    }
+
+    public class FadeOutController(int x, int y) : Player.PlayerController
+    {
+        public int FadeOutX() => x = (int)Mathf.Lerp(x, 0f, 20f);
+        public int FadeOutY() => y = (int)Mathf.Lerp(y, 0f, 20f);
+
+        public override Player.InputPackage GetInput() =>
+            new(gamePad: false, Options.ControlSetup.Preset.None, FadeOutX(), FadeOutY(), jmp: false, thrw: false, pckp: false, mp: false, crouchToggle: false);
     }
 }
