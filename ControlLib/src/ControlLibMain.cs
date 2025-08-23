@@ -1,4 +1,5 @@
-﻿using System.Security.Permissions;
+﻿using System;
+using System.Security.Permissions;
 using BepInEx;
 using ControlLib.Possession;
 using ControlLib.Utils;
@@ -16,19 +17,28 @@ public class ControlLibMain : BaseUnityPlugin
     public const string PLUGIN_GUID = "ynhzrfxn.controllib";
     public const string PLUGIN_VERSION = "1.0.0";
 
+    public static CLOptions.ClientOptions? ClientOptions { get; private set; }
+
     private bool isInitialized;
+    private readonly CLOptions options;
+
+    public ControlLibMain()
+        : base()
+    {
+        CLLogger.CleanLogFile();
+
+        options = new();
+        ClientOptions = new();
+    }
 
     public void OnEnable()
     {
         if (isInitialized) return;
-
         isInitialized = true;
 
-        CLLogger.CleanLogFile();
+        InputHandler.Keys.InitKeybinds();
 
-        PossessionHooks.ApplyHooks();
-
-        InputHandler.Keys.RegisterKeybinds();
+        ApplyCLHooks();
 
         Logger.LogInfo("Enabled ControlLib successfully.");
     }
@@ -36,11 +46,61 @@ public class ControlLibMain : BaseUnityPlugin
     public void OnDisable()
     {
         if (!isInitialized) return;
-
         isInitialized = false;
 
-        PossessionHooks.RemoveHooks();
+        RemoveCLHooks();
 
         Logger.LogInfo("Disabled ControlLib successfully.");
+    }
+
+    private void ApplyCLHooks()
+    {
+        try
+        {
+            PossessionHooks.ApplyHooks();
+
+            On.GameSession.ctor += GameSessionHook;
+            On.RainWorld.OnModsInit += OnModsInitHook;
+        }
+        catch (Exception ex)
+        {
+            CLLogger.LogError($"Failed to apply hooks!", ex);
+        }
+    }
+
+    private void RemoveCLHooks()
+    {
+        try
+        {
+            PossessionHooks.RemoveHooks();
+
+            On.GameSession.ctor -= GameSessionHook;
+            On.RainWorld.OnModsInit -= OnModsInitHook;
+        }
+        catch (Exception ex)
+        {
+            CLLogger.LogError($"Failed to remove hooks!", ex);
+        }
+    }
+
+    private void GameSessionHook(On.GameSession.orig_ctor orig, GameSession self, RainWorldGame game)
+    {
+        orig.Invoke(self, game);
+
+        ClientOptions?.RefreshOptions();
+    }
+
+    private void OnModsInitHook(On.RainWorld.orig_OnModsInit orig, RainWorld self)
+    {
+        orig.Invoke(self);
+
+        try
+        {
+            MachineConnector.SetRegisteredOI(PLUGIN_GUID, options);
+        }
+        catch (Exception ex)
+        {
+            CLLogger.LogError("Failed to apply REMIX settings!", ex);
+        }
     }
 }
