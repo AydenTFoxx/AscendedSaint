@@ -15,6 +15,7 @@ public static class PossessionHooks
     public static void ApplyHooks()
     {
         IL.Creature.Update += UpdatePossessedCreatureILHook;
+
         On.Creature.Die += RemovePossessionHook;
         On.Player.Update += UpdatePlayerPossessionHook;
     }
@@ -25,6 +26,7 @@ public static class PossessionHooks
     public static void RemoveHooks()
     {
         IL.Creature.Update -= UpdatePossessedCreatureILHook;
+
         On.Creature.Die -= RemovePossessionHook;
         On.Player.Update -= UpdatePlayerPossessionHook;
     }
@@ -36,7 +38,7 @@ public static class PossessionHooks
     {
         orig.Invoke(self);
 
-        if (self.TryGetPossession(out Player player))
+        if (self.TryGetPossession(out Player? player) && player is not null)
         {
             player.GetPossessionManager().StopPossession(self);
         }
@@ -63,7 +65,7 @@ public static class PossessionHooks
         try
         {
             ILCursor c = new(context);
-            ILLabel target = null;
+            ILLabel? target = null;
 
             c.GotoNext(
                 MoveType.After,
@@ -87,7 +89,7 @@ public static class PossessionHooks
     /// <returns><c>true</c> if the game's default behavior was overriden, <c>false</c> otherwise.</returns>
     private static bool UpdateCreaturePossession(Creature self)
     {
-        if (!self.TryGetPossession(out Player player)) return false;
+        if (!self.TryGetPossession(out Player? player) || player is null) return false;
 
         PossessionManager manager = player.GetPossessionManager();
 

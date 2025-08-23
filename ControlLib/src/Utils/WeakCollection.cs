@@ -48,7 +48,7 @@ public class WeakCollection<T> : ICollection<T> where T : class
 
     public IEnumerator<T> GetEnumerator()
     {
-        for (int i = list.Count - 1; i >= 0; i--)
+        for (int i = 0; i < list.Count; i++)
         {
             if (!list[i].TryGetTarget(out T element))
             {
@@ -58,6 +58,4 @@ public class WeakCollection<T> : ICollection<T> where T : class
             yield return element;
         }
     }
-
-    public void Purge() => list.RemoveAll(k => !k.TryGetTarget(out _));
 }

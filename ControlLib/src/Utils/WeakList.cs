@@ -19,7 +19,15 @@ public class WeakList<T> : WeakCollection<T>, IList<T> where T : class
 
     public T this[int index]
     {
-        get => list[index].TryGetTarget(out T target) ? target : null;
+        get
+        {
+            if (!list[index].TryGetTarget(out T target))
+            {
+                CLLogger.LogWarning($"Returning an empty value: {this}");
+            }
+
+            return target;
+        }
 
         set => list[index] = new WeakReference<T>(value);
     }

@@ -1,8 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
+        <OutputType>Library</OutputType>
         <TargetFramework>net481</TargetFramework>
         <LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
         <PostBuildEvent>copy $(MSBuildProjectDirectory)\bin\$(Configuration)\ControlLib.dll $(MSBuildProjectDirectory)\mod\plugins</PostBuildEvent>
     </PropertyGroup>

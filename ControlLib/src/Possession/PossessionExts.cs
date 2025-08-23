@@ -25,7 +25,7 @@ public static class PossessionExts
     /// <param name="self">The creature to be queried.</param>
     /// <returns>The <c>Player</c> who is currently possessing this creature, or <c>null</c> if none is found.</returns>
     /// <remarks>Unlike <see cref="GetPossessionManager(Player)"/>, this does not create a new instance should none be found.</remarks>
-    public static Player GetPossession(this Creature self) => TryGetPossession(self, out Player possession) ? possession : null;
+    public static Player? GetPossession(this Creature self) => TryGetPossession(self, out Player? possession) ? possession : null;
 
     /// <summary>
     /// Obtains the given player's <c>PossessionManager</c> instance. If none is found, a new one is created with default values.
@@ -48,11 +48,11 @@ public static class PossessionExts
     /// <param name="self">The creature to be queried.</param>
     /// <param name="possession">The output value; May be a <c>Player</c> instance or <c>null</c>.</param>
     /// <returns><c>true</c> if a value was found, <c>false</c> otherwise.</returns>
-    public static bool TryGetPossession(this Creature self, out Player possession)
+    public static bool TryGetPossession(this Creature self, out Player? possession)
     {
         possession = null;
 
-        if (_cachedPossessions.TryGetValue(self, out Player player))
+        if (_cachedPossessions.TryGetValue(self, out Player? player))
         {
             possession = player;
             return true;
