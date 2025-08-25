@@ -1,5 +1,5 @@
 using System.Runtime.CompilerServices;
-using ControlLib.Utils;
+using ControlLib.Utils.Generics;
 
 namespace ControlLib.Possession;
 
@@ -12,12 +12,12 @@ public static class PossessionExts
     /// Stores the result of previous queries for a given creature and its possessing player.
     /// </summary>
     /// <remarks>References are valid for as long as the possession lasts; Once possession ends, the given creature's key-value pair is discarded.</remarks>
-    private static readonly ConditionalWeakTable<Creature, Player> _cachedPossessions = new();
+    internal static readonly ConditionalWeakTable<Creature, Player> _cachedPossessions = new();
     /// <summary>
     /// Stores all players with a <c>PossessionManager</c> instance.
     /// </summary>
     /// <remarks>This is used as a reference to determine which player is currently possessing a given creature.</remarks>
-    private static readonly WeakDictionary<Player, PossessionManager> _possessionHolders = [];
+    internal static readonly WeakDictionary<Player, PossessionManager> _possessionHolders = [];
 
     /// <summary>
     /// Obtains the given creature's possessing player, if any.

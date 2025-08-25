@@ -2,9 +2,9 @@ using System.Linq;
 using ImprovedInput;
 using UnityEngine;
 
-namespace ControlLib.Utils;
+namespace ControlLib.Utils.Compatibility;
 
-public static class ImprovedInputHandler
+internal static class ImprovedInputHandler
 {
     public static PlayerKeybind GetPlayerKeybind(string id) => PlayerKeybind.Get(id);
 

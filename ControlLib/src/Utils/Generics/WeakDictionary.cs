@@ -1,5 +1,3 @@
-#nullable disable
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -7,7 +5,9 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace ControlLib.Utils;
+#nullable disable
+
+namespace ControlLib.Utils.Generics;
 
 // Credits to N73k for original script
 public class WeakDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDisposable

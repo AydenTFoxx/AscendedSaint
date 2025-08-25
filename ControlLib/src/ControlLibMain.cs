@@ -15,7 +15,7 @@ public class ControlLibMain : BaseUnityPlugin
 {
     public const string PLUGIN_NAME = "ControlLib";
     public const string PLUGIN_GUID = "ynhzrfxn.controllib";
-    public const string PLUGIN_VERSION = "1.0.0";
+    public const string PLUGIN_VERSION = "0.2.0";
 
     public static CLOptions.ClientOptions? ClientOptions { get; private set; }
 
@@ -35,8 +35,6 @@ public class ControlLibMain : BaseUnityPlugin
     {
         if (isInitialized) return;
         isInitialized = true;
-
-        InputHandler.Keys.InitKeybinds();
 
         ApplyCLHooks();
 
@@ -61,6 +59,7 @@ public class ControlLibMain : BaseUnityPlugin
 
             On.GameSession.ctor += GameSessionHook;
             On.RainWorld.OnModsInit += OnModsInitHook;
+            On.RainWorld.PostModsInit += PostModsInitHook;
         }
         catch (Exception ex)
         {
@@ -76,6 +75,7 @@ public class ControlLibMain : BaseUnityPlugin
 
             On.GameSession.ctor -= GameSessionHook;
             On.RainWorld.OnModsInit -= OnModsInitHook;
+            On.RainWorld.PostModsInit -= PostModsInitHook;
         }
         catch (Exception ex)
         {
@@ -102,5 +102,12 @@ public class ControlLibMain : BaseUnityPlugin
         {
             CLLogger.LogError("Failed to apply REMIX settings!", ex);
         }
+    }
+
+    private void PostModsInitHook(On.RainWorld.orig_PostModsInit orig, RainWorld self)
+    {
+        orig.Invoke(self);
+
+        InputHandler.Keys.InitKeybinds();
     }
 }
