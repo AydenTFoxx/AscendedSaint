@@ -51,9 +51,12 @@ public static class PossessionHooks
     {
         orig.Invoke(self, eu);
 
-        PossessionManager manager = self.GetPossessionManager();
+        if (!self.dead)
+        {
+            PossessionManager manager = self.GetPossessionManager();
 
-        manager.Update();
+            manager.Update();
+        }
     }
 
     /// <summary>
