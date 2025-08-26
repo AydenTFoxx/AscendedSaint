@@ -5,7 +5,7 @@ VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ControlLib", "ControlLib/ControlLib.csproj", "{F55BF10D-0FBB-41F1-B8FC-CBDE1A0F3815}"
 EndProject
-Project("{F0455CFE-0FEF-4213-AAAC-D9ECD496C022}") = "AscendedSaint", "AscendedSaint/AscendedSaint.csproj", "{F818B964-FF7E-EFE9-C4B9-F906E34073DC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AscendedSaint", "AscendedSaint/AscendedSaint.csproj", "{F818B964-FF7E-EFE9-C4B9-F906E34073DC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
