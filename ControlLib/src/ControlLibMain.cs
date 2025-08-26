@@ -15,7 +15,7 @@ public class ControlLibMain : BaseUnityPlugin
 {
     public const string PLUGIN_NAME = "ControlLib";
     public const string PLUGIN_GUID = "ynhzrfxn.controllib";
-    public const string PLUGIN_VERSION = "0.2.0";
+    public const string PLUGIN_VERSION = "0.3.0";
 
     public static CLOptions.ClientOptions? ClientOptions { get; private set; }
 
@@ -38,6 +38,8 @@ public class ControlLibMain : BaseUnityPlugin
 
         ApplyCLHooks();
 
+        InputHandler.Keys.InitKeybinds();
+
         Logger.LogInfo("Enabled ControlLib successfully.");
     }
 
@@ -59,7 +61,8 @@ public class ControlLibMain : BaseUnityPlugin
 
             On.GameSession.ctor += GameSessionHook;
             On.RainWorld.OnModsInit += OnModsInitHook;
-            On.RainWorld.PostModsInit += PostModsInitHook;
+
+            CLLogger.LogDebug("Successfully applied all hooks to the game.");
         }
         catch (Exception ex)
         {
@@ -75,7 +78,8 @@ public class ControlLibMain : BaseUnityPlugin
 
             On.GameSession.ctor -= GameSessionHook;
             On.RainWorld.OnModsInit -= OnModsInitHook;
-            On.RainWorld.PostModsInit -= PostModsInitHook;
+
+            CLLogger.LogDebug("Removed all hooks from the game.");
         }
         catch (Exception ex)
         {
@@ -87,7 +91,20 @@ public class ControlLibMain : BaseUnityPlugin
     {
         orig.Invoke(self, game);
 
-        ClientOptions?.RefreshOptions();
+        if (CompatibilityManager.IsRainMeadowEnabled()
+            && MeadowUtils.IsOnline && !MeadowUtils.IsHost)
+        {
+            if (ClientOptions is not null) // Sane defaults for when the host does not have this mod enabled
+            {
+                ClientOptions.meadowSlowdown = false;
+            }
+
+            MeadowUtils.RequestOptionsSync();
+        }
+        else
+        {
+            ClientOptions?.RefreshOptions();
+        }
     }
 
     private void OnModsInitHook(On.RainWorld.orig_OnModsInit orig, RainWorld self)
@@ -102,12 +119,5 @@ public class ControlLibMain : BaseUnityPlugin
         {
             CLLogger.LogError("Failed to apply REMIX settings!", ex);
         }
-    }
-
-    private void PostModsInitHook(On.RainWorld.orig_PostModsInit orig, RainWorld self)
-    {
-        orig.Invoke(self);
-
-        InputHandler.Keys.InitKeybinds();
     }
 }
