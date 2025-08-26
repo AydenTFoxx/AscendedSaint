@@ -2,7 +2,7 @@ using System.Linq;
 using ImprovedInput;
 using UnityEngine;
 
-namespace ControlLib.Utils.Compatibility;
+namespace ControlLib.Utils;
 
 internal static class ImprovedInputHandler
 {

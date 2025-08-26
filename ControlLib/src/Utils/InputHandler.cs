@@ -1,6 +1,6 @@
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
-using ControlLib.Utils.Compatibility;
 using static ControlLib.Utils.CompatibilityManager;
 
 namespace ControlLib.Utils;
@@ -71,9 +71,16 @@ public static class InputHandler
         {
             Keybinds.Add(keybind);
 
-            if (IsIICEnabled())
+            try
             {
                 ImprovedInputHandler.RegisterPlayerKeybind(keybind);
+            }
+            catch (System.Exception ex)
+            {
+                if (ex is not FileNotFoundException)
+                {
+                    CLLogger.LogError("Failed to register IIC-compatible keybind!", ex);
+                }
             }
 
             CLLogger.LogInfo($"Registered new keybind! {keybind}");
@@ -97,8 +104,19 @@ public static class InputHandler
         /// <summary>
         /// Initializes all keybinds of the mod. A dummy method for the sake of registering keybinds as early as possible.
         /// </summary>
-        public static void InitKeybinds() =>
-            CLLogger.LogInfo($"Initialized keybinds successfully. IIC enabled? {IsIICEnabled()}");
+        public static void InitKeybinds()
+        {
+            try
+            {
+                ImprovedInputHandler.GetPlayerKeybind(POSSESS.ID); // test if IIC is enabled and accessible
+
+                CLLogger.LogInfo($"Initialized keybinds successfully; Enabled IIC support!");
+            }
+            catch
+            {
+                CLLogger.LogInfo($"Initialized keybinds successfully -- No IIC support enabled.");
+            }
+        }
     }
 }
 

@@ -23,10 +23,10 @@ internal class OptionBuilder
         opTab.AddItems(
             [
                 new OpLabel(new Vector2(200f, 520f), new Vector2(200f, 40f), ControlLibMain.PLUGIN_NAME, bigText: true),
-                    new OpLabel(new Vector2(200f, 505f), new Vector2(200f, 15f), "v" + ControlLibMain.PLUGIN_VERSION)
-                    {
-                        color = Color.gray
-                    }
+                new OpLabel(new Vector2(245f, 510f), new Vector2(200f, 15f), $"[v{ControlLibMain.PLUGIN_VERSION}]")
+                {
+                    color = Color.gray
+                }
             ]
         );
     }
@@ -48,15 +48,15 @@ internal class OptionBuilder
         UIelement[] UIarrayOptions =
         [
             new OpLabel(vector2 + new Vector2(40f, 0f), new Vector2(100f, 24f), text)
-                {
-                    description = configurable.info.description,
-                    alignment = FLabelAlignment.Left,
-                    verticalAlignment = OpLabel.LabelVAlignment.Center
-                },
-                new OpCheckBox(configurable, vector2)
-                {
-                    description = configurable.info.description
-                }
+            {
+                description = configurable.info.description,
+                alignment = FLabelAlignment.Left,
+                verticalAlignment = OpLabel.LabelVAlignment.Center
+            },
+            new OpCheckBox(configurable, vector2)
+            {
+                description = configurable.info.description
+            }
         ];
 
         vector2.y -= 32f;
@@ -76,16 +76,16 @@ internal class OptionBuilder
     {
         UIelement[] UIarrayOptions =
         [
-            new OpLabel(vector2, new Vector2(100f, 24f), text)
-                {
-                    description = configurable.info.description,
-                    alignment = FLabelAlignment.Left,
-                    verticalAlignment = OpLabel.LabelVAlignment.Center
-                },
-                new OpComboBox(configurable, vector2 + new Vector2(0f, 40f), width)
-                {
-                    description = configurable.info.description
-                }
+            new OpLabel(vector2 + new Vector2(40f, 0f), new Vector2(100f, 24f), text)
+            {
+                description = configurable.info.description,
+                alignment = FLabelAlignment.Left,
+                verticalAlignment = OpLabel.LabelVAlignment.Center
+            },
+            new OpComboBox(configurable, vector2 + new Vector2(180f, 00f), width)
+            {
+                description = configurable.info.description
+            }
         ];
 
         vector2.y -= 32f;
@@ -108,14 +108,14 @@ internal class OptionBuilder
         UIelement[] UIarrayOptions =
         [
             new OpLabel(vector2 + new Vector2(40f, 0f), new Vector2(100f, 24f), text)
-                {
-                    description = configurable.info.description,
-                    verticalAlignment = OpLabel.LabelVAlignment.Center
-                },
-                new OpSlider(configurable, vector2 + new Vector2(200f, 0f), multi, vertical)
-                {
-                    description = configurable.info.description
-                }
+            {
+                description = configurable.info.description,
+                verticalAlignment = OpLabel.LabelVAlignment.Center
+            },
+            new OpSlider(configurable, vector2 + new Vector2(200f, 0f), multi, vertical)
+            {
+                description = configurable.info.description
+            }
         ];
 
         vector2.y -= 32f;
@@ -132,7 +132,7 @@ internal class OptionBuilder
     /// <returns>The <c>OptionBuilder</c> object.</returns>
     public OptionBuilder AddPadding(Vector2 padding)
     {
-        vector2 += padding;
+        vector2 -= padding;
 
         return this;
     }
@@ -150,10 +150,10 @@ internal class OptionBuilder
         UIelement[] UIarrayOptions =
         [
             new OpLabel(vector2 + new Vector2(180f, 0f), size, text, FLabelAlignment.Center, bigText)
-                {
-                    verticalAlignment = OpLabel.LabelVAlignment.Center,
-                    color = color == default ? MenuColorEffect.rgbMediumGrey : color
-                }
+            {
+                verticalAlignment = OpLabel.LabelVAlignment.Center,
+                color = color == default ? MenuColorEffect.rgbMediumGrey : color
+            }
         ];
 
         opTab.AddItems(UIarrayOptions);
