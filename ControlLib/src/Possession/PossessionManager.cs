@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 using ControlLib.Utils;
@@ -5,6 +6,7 @@ using ControlLib.Utils.Generics;
 using MoreSlugcats;
 using RWCustom;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace ControlLib.Possession;
 
@@ -14,6 +16,8 @@ namespace ControlLib.Possession;
 /// <param name="player">The player itself.</param>
 public sealed class PossessionManager
 {
+    private static readonly List<Type> BannedCreatureTypes = [typeof(Player), typeof(Overseer)];
+
     public int PossessionTimePotential { get; }
     public int MaxPossessionTime => PossessionTimePotential + ((player.room?.game.session is StoryGameSession storySession ? storySession.saveState.deathPersistentSaveData.karma : 0) * 40);
 
@@ -62,10 +66,11 @@ public sealed class PossessionManager
     public bool CanPossessCreature(Creature target) =>
         CanPossessCreature()
         && !IsBannedPossessionTarget(target)
-        && !target.TryGetPossession(out _)
         && IsPossessionValid(target);
 
-    public static bool IsBannedPossessionTarget(Creature target) => target is null or Player or Overseer or { dead: true };
+    public static bool IsBannedPossessionTarget(Creature target) =>
+        target is null or { dead: true } or { abstractCreature.controlled: true }
+        || BannedCreatureTypes.Contains(target.GetType());
 
     /// <summary>
     /// Validates the player's possession of a given creature.
@@ -125,6 +130,14 @@ public sealed class PossessionManager
 
         player.controller ??= GetFadeOutController(player);
 
+        if (CompatibilityManager.IsRainMeadowEnabled() && MeadowUtils.IsOnline)
+        {
+            if (!MeadowUtils.IsMine(target))
+                MeadowUtils.RequestOwnership(target);
+
+            MeadowUtils.SyncCreaturePossession(target, isPossession: true);
+        }
+
         target.UpdateCachedPossession();
         target.abstractCreature.controlled = true;
     }
@@ -154,6 +167,11 @@ public sealed class PossessionManager
         target.room?.AddObject(new ReverseShockwave(target.mainBodyChunk.pos, 64f, 0.05f, 24));
         player.room?.PlaySound(SoundID.HUD_Pause_Game, target.mainBodyChunk, loop: false, 1f, 0.5f);
 
+        if (CompatibilityManager.IsRainMeadowEnabled() && MeadowUtils.IsOnline)
+        {
+            MeadowUtils.SyncCreaturePossession(target, isPossession: false);
+        }
+
         target.UpdateCachedPossession();
         target.abstractCreature.controlled = false;
     }
@@ -167,7 +185,7 @@ public sealed class PossessionManager
         {
             TargetSelector.Update();
         }
-        else if (TargetSelector.Input.Initialized)
+        else if (TargetSelector.Input.Initialized || TargetSelector.Input.LockAction)
         {
             TargetSelector.ResetSelectorInput();
 
@@ -229,10 +247,10 @@ public sealed class PossessionManager
 
         foreach (Creature creature in possessions)
         {
-            stringBuilder.Append($"{creature};");
+            stringBuilder.Append($"{creature}; ");
         }
 
-        return stringBuilder.ToString();
+        return stringBuilder.ToString().Trim();
     }
 
     public class FadeOutController(int x, int y) : Player.PlayerController

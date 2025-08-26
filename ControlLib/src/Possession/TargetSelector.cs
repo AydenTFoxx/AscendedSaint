@@ -5,6 +5,7 @@ using ControlLib.Utils;
 using ControlLib.Utils.Generics;
 using RWCustom;
 using UnityEngine;
+using static ControlLib.ControlLibMain;
 
 namespace ControlLib.Possession;
 
@@ -106,11 +107,17 @@ public class TargetSelector(Player player, PossessionManager manager)
             if (player.graphicsModule is PlayerGraphics playerGraphics)
                 playerGraphics.LookAtObject(Targets.First());
 
-            if (Input.InputTime % 4 == 0)
+            int module = CompatibilityManager.IsRainMeadowEnabled()
+                ? !ClientOptions?.meadowSlowdown ?? false
+                    ? 8
+                    : 4
+                : 4;
+
+            if (Input.InputTime % module == 0)
             {
                 foreach (Creature target in Targets)
                 {
-                    player.room?.AddObject(new ShockWave(target.mainBodyChunk.pos, 64f, 0.05f, 4));
+                    player.room?.AddObject(new ShockWave(target.mainBodyChunk.pos, 64f, 0.05f, module));
                 }
             }
         }
@@ -146,10 +153,7 @@ public class TargetSelector(Player player, PossessionManager manager)
 
             case TargetSelectionState.Querying:
                 {
-                    if (player.mushroomCounter < 10)
-                    {
-                        player.mushroomCounter = 10;
-                    }
+                    player.mushroomCounter = SetMushroomCounter(player, 10);
 
                     if (!UpdateInputOffset() && !isRecursive) return;
 
@@ -181,11 +185,12 @@ public class TargetSelector(Player player, PossessionManager manager)
                     else
                     {
                         Input.LockAction = true;
-                        if (player.mushroomCounter < 20)
-                        {
-                            player.mushroomCounter = 20;
-                        }
+
+                        player.mushroomCounter = SetMushroomCounter(player, 20);
+
                         CLLogger.LogWarning("Failed to query for creatures in the room; Aborting operation.");
+
+                        MoveToState(TargetSelectionState.Idle);
                     }
 
                     break;
@@ -251,7 +256,7 @@ public class TargetSelector(Player player, PossessionManager manager)
         if (Input.Offset == offset && Input.Initialized)
             return false;
 
-        Input.Offset = offset;
+        Input.Offset = (ClientOptions?.invertControls ?? false) ? -offset : offset;
         Input.Initialized = true;
 
         return true;
@@ -370,6 +375,30 @@ public class TargetSelector(Player player, PossessionManager manager)
         player.monkAscension
             ? [.. GetCreatures(player).Distinct(new TargetEqualityComparer())]
             : [.. GetCreatures(player)];
+
+    /// <summary>
+    /// Evaluates the value to be set for the player's <c>mushroomCounter</c> field.
+    /// </summary>
+    /// <param name="player">The player itself.</param>
+    /// <param name="count">The value to be set.</param>
+    /// <returns>The new value for the player's <c>mushroomCounter</c> field.</returns>
+    /// <remarks>If the player is in a Rain Meadow lobby, this will also depend on the host's <c>meadowSlowdown</c> setting.</remarks>
+    private static int SetMushroomCounter(Player player, int count) =>
+        ShouldSetMushroomCounter(player, count)
+            ? count
+            : player.mushroomCounter;
+
+    /// <summary>
+    /// Determines if the player's <c>mushroomCounter</c> field should be updated.
+    /// </summary>
+    /// <param name="player">The player itself.</param>
+    /// <param name="count">The value to be set.</param>
+    /// <returns><c>true</c> if the value should be updated, <c>false</c> otherwise.</returns>
+    /// <remarks>Has explicit support for Rain Meadow compatibility, where the host's options are also taken into account for this check.</remarks>
+    private static bool ShouldSetMushroomCounter(Player player, int count) =>
+        CompatibilityManager.IsRainMeadowEnabled()
+            ? (!MeadowUtils.IsOnline || (ClientOptions?.meadowSlowdown ?? false)) && player.mushroomCounter < count
+            : player.mushroomCounter < count;
 
     /// <summary>
     /// Sorts a list of creatures based on their distance to a given point.

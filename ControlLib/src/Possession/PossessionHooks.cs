@@ -1,4 +1,5 @@
 using System;
+using ControlLib.Utils;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
 
@@ -38,6 +39,8 @@ public static class PossessionHooks
     {
         orig.Invoke(self);
 
+        if (CompatibilityManager.IsRainMeadowEnabled() && !MeadowUtils.IsMine(self)) return;
+
         if (self.TryGetPossession(out Player? player) && player is not null)
         {
             player.GetPossessionManager().StopPossession(self);
@@ -50,6 +53,15 @@ public static class PossessionHooks
     private static void UpdatePlayerPossessionHook(On.Player.orig_Update orig, Player self, bool eu)
     {
         orig.Invoke(self, eu);
+
+        if (CompatibilityManager.IsRainMeadowEnabled() && MeadowUtils.IsOnline)
+        {
+            if (MeadowUtils.IsGameMode(MeadowUtils.MeadowGameModes.Meadow)) return;
+
+            Meadow.RPCManager.UpdateRPCs();
+
+            if (!MeadowUtils.IsMine(self)) return;
+        }
 
         if (!self.dead)
         {
@@ -92,7 +104,12 @@ public static class PossessionHooks
     /// <returns><c>true</c> if the game's default behavior was overriden, <c>false</c> otherwise.</returns>
     private static bool UpdateCreaturePossession(Creature self)
     {
-        if (!self.TryGetPossession(out Player? player) || player is null) return false;
+        if ((CompatibilityManager.IsRainMeadowEnabled() && !MeadowUtils.IsMine(self))
+            || !self.TryGetPossession(out Player? player)
+            || player is null)
+        {
+            return false;
+        }
 
         PossessionManager manager = player.GetPossessionManager();
 
