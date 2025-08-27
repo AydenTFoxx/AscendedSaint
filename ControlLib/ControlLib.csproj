@@ -4,13 +4,9 @@
         <OutputType>Library</OutputType>
         <TargetFramework>net481</TargetFramework>
         <LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-        <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
-        <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
-        <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-        <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
-        <PostBuildEvent>copy $(MSBuildProjectDirectory)\bin\$(Configuration)\AscendedSaint.dll $(MSBuildProjectDirectory)\mod\plugins</PostBuildEvent>
+        <PostBuildEvent>copy $(MSBuildProjectDirectory)\bin\$(Configuration)\ControlLib.dll $(MSBuildProjectDirectory)\mod\plugins</PostBuildEvent>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -32,6 +28,9 @@
         </Reference>
         <Reference Include="HOOKS-Assembly-CSharp">
             <HintPath>lib\BepInEx\plugins\HOOKS-Assembly-CSharp.dll</HintPath>
+        </Reference>
+        <Reference Include="ImprovedInput">
+            <HintPath>lib\ImprovedInput.dll</HintPath>
         </Reference>
         <Reference Include="Mono.Cecil">
             <HintPath>lib\RainWorld_Data\Managed\Mono.Cecil.dll</HintPath>
@@ -62,6 +61,12 @@
         </Reference>
         <Reference Include="UnityEngine.CoreModule">
             <HintPath>lib\RainWorld_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.InputModule">
+            <HintPath>lib\RainWorld_Data\Managed\UnityEngine.InputModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.InputLegacyModule">
+            <HintPath>lib\RainWorld_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
         </Reference>
     </ItemGroup>
 

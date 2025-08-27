@@ -43,3 +43,9 @@ All of these features can be individually toggled on, off, or modified as you wi
 Ascended Saint was made with [i]Rain Meadow[/i] support in mind, and offers compatibility out of the box for both Story and Arena modes of the mod.
 
 One caveat, however, is that all players must have this mod enabled, or they will not be able to join the lobby at all. This is a feature of Rain Meadow, not a limitation of this mod.
+
+[h2] Open-source? That too! [/h2]
+
+All of [i]Ascended Saint[/i]'s source code is hosted on [b]GitHub[/b]! It is also where you can find early releases, as well as reporting bugs on this mod.
+
+Link to GitHub page: https://github.com/AydenTFoxx/AscendedSaint
