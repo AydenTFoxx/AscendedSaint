@@ -7,6 +7,7 @@ using MoreSlugcats;
 using RWCustom;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using static ControlLib.ControlLibMain;
 
 namespace ControlLib.Possession;
 
@@ -181,7 +182,7 @@ public sealed class PossessionManager
     /// </summary>
     public void Update()
     {
-        if (InputHandler.IsKeyPressed(player, InputHandler.Keys.POSSESS))
+        if (player.Consious && InputHandler.IsKeyPressed(player, InputHandler.Keys.POSSESS))
         {
             TargetSelector.Update();
         }
@@ -197,7 +198,10 @@ public sealed class PossessionManager
         {
             player.Blink(10);
 
-            PossessionTime--;
+            if (!ClientOptions?.infinitePossession ?? false)
+            {
+                PossessionTime--;
+            }
 
             if (PossessionTime < 1 || !player.Consious)
             {
