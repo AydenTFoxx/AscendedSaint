@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace ControlLib.Utils;
+namespace ControlLib.Utils.Generics;
 
 public class WeakCollection<T> : ICollection<T> where T : class
 {

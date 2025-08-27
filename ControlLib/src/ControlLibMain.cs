@@ -15,7 +15,7 @@ public class ControlLibMain : BaseUnityPlugin
 {
     public const string PLUGIN_NAME = "ControlLib";
     public const string PLUGIN_GUID = "ynhzrfxn.controllib";
-    public const string PLUGIN_VERSION = "1.0.0";
+    public const string PLUGIN_VERSION = "0.3.1";
 
     public static CLOptions.ClientOptions? ClientOptions { get; private set; }
 
@@ -36,9 +36,9 @@ public class ControlLibMain : BaseUnityPlugin
         if (isInitialized) return;
         isInitialized = true;
 
-        InputHandler.Keys.InitKeybinds();
-
         ApplyCLHooks();
+
+        InputHandler.Keys.InitKeybinds();
 
         Logger.LogInfo("Enabled ControlLib successfully.");
     }
@@ -61,6 +61,8 @@ public class ControlLibMain : BaseUnityPlugin
 
             On.GameSession.ctor += GameSessionHook;
             On.RainWorld.OnModsInit += OnModsInitHook;
+
+            CLLogger.LogDebug("Successfully applied all hooks to the game.");
         }
         catch (Exception ex)
         {
@@ -76,6 +78,8 @@ public class ControlLibMain : BaseUnityPlugin
 
             On.GameSession.ctor -= GameSessionHook;
             On.RainWorld.OnModsInit -= OnModsInitHook;
+
+            CLLogger.LogDebug("Removed all hooks from the game.");
         }
         catch (Exception ex)
         {
@@ -87,7 +91,20 @@ public class ControlLibMain : BaseUnityPlugin
     {
         orig.Invoke(self, game);
 
-        ClientOptions?.RefreshOptions();
+        if (CompatibilityManager.IsRainMeadowEnabled()
+            && MeadowUtils.IsOnline && !MeadowUtils.IsHost)
+        {
+            if (ClientOptions is not null) // Sane defaults for when the host does not have this mod enabled
+            {
+                ClientOptions.meadowSlowdown = false;
+            }
+
+            MeadowUtils.RequestOptionsSync();
+        }
+        else
+        {
+            ClientOptions = new();
+        }
     }
 
     private void OnModsInitHook(On.RainWorld.orig_OnModsInit orig, RainWorld self)

@@ -1,9 +1,13 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 using ControlLib.Utils;
+using ControlLib.Utils.Generics;
 using MoreSlugcats;
 using RWCustom;
 using UnityEngine;
+using Random = UnityEngine.Random;
+using static ControlLib.ControlLibMain;
 
 namespace ControlLib.Possession;
 
@@ -13,6 +17,8 @@ namespace ControlLib.Possession;
 /// <param name="player">The player itself.</param>
 public sealed class PossessionManager
 {
+    private static readonly List<Type> BannedCreatureTypes = [typeof(Player), typeof(Overseer)];
+
     public int PossessionTimePotential { get; }
     public int MaxPossessionTime => PossessionTimePotential + ((player.room?.game.session is StoryGameSession storySession ? storySession.saveState.deathPersistentSaveData.karma : 0) * 40);
 
@@ -20,7 +26,7 @@ public sealed class PossessionManager
     private readonly Player player;
 
     public TargetSelector TargetSelector { get; private set; }
-    public int PossessionCooldown { get; private set; } = 0;
+    public int PossessionCooldown { get; private set; }
     public int PossessionTime { get; private set; }
     public bool IsPossessing => MyPossessions.Count > 0;
 
@@ -51,7 +57,7 @@ public sealed class PossessionManager
     /// Determines if the player is allowed to start a new possession.
     /// </summary>
     /// <returns><c>true</c> if the player can use their possession ability, <c>false</c> otherwise.</returns>
-    public bool CanPossessCreature() => !IsPossessing && PossessionTime > 0 && PossessionCooldown == 0;
+    public bool CanPossessCreature() => PossessionTime > 0 && PossessionCooldown == 0;
 
     /// <summary>
     /// Determines if the player can possess the given creature.
@@ -61,10 +67,11 @@ public sealed class PossessionManager
     public bool CanPossessCreature(Creature target) =>
         CanPossessCreature()
         && !IsBannedPossessionTarget(target)
-        && !target.TryGetPossession(out _)
         && IsPossessionValid(target);
 
-    public static bool IsBannedPossessionTarget(Creature target) => target is null or Player or Overseer or { dead: true };
+    public static bool IsBannedPossessionTarget(Creature target) =>
+        target is null or { dead: true } or { abstractCreature.controlled: true }
+        || BannedCreatureTypes.Contains(target.GetType());
 
     /// <summary>
     /// Validates the player's possession of a given creature.
@@ -83,7 +90,12 @@ public sealed class PossessionManager
     /// <summary>
     /// Removes all possessions of the player. Possessed creatures will automatically stop their own possessions.
     /// </summary>
-    public void ResetAllPossessions() => MyPossessions.Clear();
+    public void ResetAllPossessions()
+    {
+        MyPossessions.Clear();
+
+        player.controller = null;
+    }
 
     /// <summary>
     /// Initializes a new possession with the given creature as a target.
@@ -117,7 +129,15 @@ public sealed class PossessionManager
         player.room?.AddObject(new ShockWave(target.mainBodyChunk.pos, 100f, 0.08f, 4, false));
         player.room?.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, target.mainBodyChunk, loop: false, 1f, 1.25f + (Random.value * 1.25f));
 
-        FreezePlayerControls();
+        player.controller ??= GetFadeOutController(player);
+
+        if (CompatibilityManager.IsRainMeadowEnabled() && MeadowUtils.IsOnline)
+        {
+            if (!MeadowUtils.IsMine(target))
+                MeadowUtils.RequestOwnership(target);
+
+            MeadowUtils.SyncCreaturePossession(target, isPossession: true);
+        }
 
         target.UpdateCachedPossession();
         target.abstractCreature.controlled = true;
@@ -132,21 +152,26 @@ public sealed class PossessionManager
         MyPossessions.Remove(target);
         PossessionCooldown = 20;
 
-        if (MyPossessions.Count < 1)
+        if (!IsPossessing)
         {
-            UnfreezePlayerControls();
+            player.controller = null;
         }
 
         if (PossessionTime == 0)
         {
             for (int k = 0; k < 20; k++)
             {
-                player.room?.AddObject(new Spark(target.mainBodyChunk.pos, Custom.RNV() * Random.value * 40f, new Color(1f, 1f, 1f), null, 30, 120));
+                target.room?.AddObject(new Spark(target.mainBodyChunk.pos, Custom.RNV() * Random.value * 40f, new Color(1f, 1f, 1f), null, 30, 120));
             }
         }
 
-        player.room?.AddObject(new ReverseShockwave(target.mainBodyChunk.pos, 64f, 0.05f, 24));
+        target.room?.AddObject(new ReverseShockwave(target.mainBodyChunk.pos, 64f, 0.05f, 24));
         player.room?.PlaySound(SoundID.HUD_Pause_Game, target.mainBodyChunk, loop: false, 1f, 0.5f);
+
+        if (CompatibilityManager.IsRainMeadowEnabled() && MeadowUtils.IsOnline)
+        {
+            MeadowUtils.SyncCreaturePossession(target, isPossession: false);
+        }
 
         target.UpdateCachedPossession();
         target.abstractCreature.controlled = false;
@@ -157,29 +182,35 @@ public sealed class PossessionManager
     /// </summary>
     public void Update()
     {
-        if (InputHandler.IsKeyPressed(player, InputHandler.Keys.POSSESS))
+        if (player.Consious && InputHandler.IsKeyPressed(player, InputHandler.Keys.POSSESS))
         {
             TargetSelector.Update();
         }
-        else if (TargetSelector.Input.IsActive || TargetSelector.Input.LockAction)
+        else if (TargetSelector.Input.Initialized || TargetSelector.Input.LockAction)
         {
-            TargetSelector.ConfirmSelection();
+            TargetSelector.ResetSelectorInput();
+
+            if (TargetSelector.HasValidTargets)
+                TargetSelector.ApplySelectedTargets();
         }
 
         if (IsPossessing)
         {
             player.Blink(10);
 
-            PossessionTime--;
+            if (!ClientOptions?.infinitePossession ?? false)
+            {
+                PossessionTime--;
+            }
 
             if (PossessionTime < 1 || !player.Consious)
             {
                 if (player.Consious)
                 {
                     player.aerobicLevel = 1f;
-                    player.airInLungs *= 0.5f;
+                    player.airInLungs *= 0.25f;
                     player.exhausted = true;
-                    player.Stun(30);
+                    player.Stun(35);
                 }
 
                 ResetAllPossessions();
@@ -196,14 +227,12 @@ public sealed class PossessionManager
         }
     }
 
-    public void FreezePlayerControls()
+    public static FadeOutController GetFadeOutController(Player player)
     {
         Player.InputPackage input = InputHandler.GetVanillaInput(player);
 
-        player.controller = new FadeOutController(input.x, player.standing ? 1 : input.y);
+        return new FadeOutController(input.x, player.standing ? 1 : input.y);
     }
-
-    public void UnfreezePlayerControls() => player.controller = null;
 
     /// <summary>
     /// Retrieves a <c>string</c> representation of this <c>PossessionManager</c> instance.
@@ -222,10 +251,10 @@ public sealed class PossessionManager
 
         foreach (Creature creature in possessions)
         {
-            stringBuilder.Append($"{creature};");
+            stringBuilder.Append($"{creature}; ");
         }
 
-        return stringBuilder.ToString();
+        return stringBuilder.ToString().Trim();
     }
 
     public class FadeOutController(int x, int y) : Player.PlayerController
