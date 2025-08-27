@@ -134,15 +134,24 @@ public static class PossessionRPCs
         }
 
         public SharedOptions()
+            : base()
         {
-            RefreshOptions();
         }
 
         public void CustomSerialize(Serializer serializer)
         {
-            serializer.Serialize(ref ClientOptions!.selectionMode);
-            serializer.Serialize(ref ClientOptions!.invertControls);
-            serializer.Serialize(ref ClientOptions!.meadowSlowdown);
+            if (ClientOptions is null)
+            {
+                throw new InvalidProgrammerException("ClientOptions was not initialized");
+            }
+
+            serializer.Serialize(ref ClientOptions.selectionMode);
+            serializer.Serialize(ref ClientOptions.invertControls);
+            serializer.Serialize(ref ClientOptions.meadowSlowdown);
+            serializer.Serialize(ref ClientOptions.infinitePossession);
+            serializer.Serialize(ref ClientOptions.possessAncestors);
+            serializer.Serialize(ref ClientOptions.forceMultitargetPossession);
+            serializer.Serialize(ref ClientOptions.worldwideMindControl);
         }
 
         public override string ToString() => $"{nameof(SharedOptions)} => {FormatOptions()}";

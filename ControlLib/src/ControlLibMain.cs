@@ -15,7 +15,7 @@ public class ControlLibMain : BaseUnityPlugin
 {
     public const string PLUGIN_NAME = "ControlLib";
     public const string PLUGIN_GUID = "ynhzrfxn.controllib";
-    public const string PLUGIN_VERSION = "0.3.0";
+    public const string PLUGIN_VERSION = "0.3.1";
 
     public static CLOptions.ClientOptions? ClientOptions { get; private set; }
 
@@ -103,7 +103,7 @@ public class ControlLibMain : BaseUnityPlugin
         }
         else
         {
-            ClientOptions?.RefreshOptions();
+            ClientOptions = new();
         }
     }
 

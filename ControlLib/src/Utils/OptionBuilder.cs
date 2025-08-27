@@ -1,3 +1,4 @@
+using System.Linq;
 using Menu;
 using Menu.Remix.MixedUI;
 using UnityEngine;
@@ -13,11 +14,11 @@ internal class OptionBuilder
     private Vector2 vector2 = new(100f, 400f);
     private readonly OpTab opTab;
 
-    public OptionBuilder(OptionInterface owner, string tabName, Color colorButton = default)
+    public OptionBuilder(OptionInterface owner, string tabName, params Color[] colors)
     {
         opTab = new OpTab(owner, tabName)
         {
-            colorButton = colorButton != default ? colorButton : MenuColorEffect.rgbMediumGrey
+            colorButton = GetDefaultedColor(colors, 0)
         };
 
         opTab.AddItems(
@@ -43,7 +44,7 @@ internal class OptionBuilder
     /// <param name="text">The check box's label. Will be displayed right after the box itself.</param>
     /// <param name="configurable">The <c>Configurable</c> this check box will be bound to.</param>
     /// <returns>The <c>OptionBuilder</c> object.</returns>
-    public OptionBuilder AddCheckBoxOption(string text, Configurable<bool> configurable)
+    public OptionBuilder AddCheckBoxOption(string text, Configurable<bool> configurable, params Color[] colors)
     {
         UIelement[] UIarrayOptions =
         [
@@ -51,11 +52,14 @@ internal class OptionBuilder
             {
                 description = configurable.info.description,
                 alignment = FLabelAlignment.Left,
-                verticalAlignment = OpLabel.LabelVAlignment.Center
+                verticalAlignment = OpLabel.LabelVAlignment.Center,
+                color = GetDefaultedColor(colors, 0)
             },
             new OpCheckBox(configurable, vector2)
             {
-                description = configurable.info.description
+                description = configurable.info.description,
+                colorEdge = GetDefaultedColor(colors, 1),
+                colorFill = GetDefaultedColor(colors, 2, MenuColorEffect.rgbBlack)
             }
         ];
 
@@ -72,7 +76,7 @@ internal class OptionBuilder
     /// <param name="text">The combo box's label. Will be displayed right after the box itself.</param>
     /// <param name="configurable">The <c>Configurable</c> this combo box will be bound to.</param>
     /// <returns>The <c>OptionBuilder</c> object.</returns>
-    public OptionBuilder AddComboBoxOption(string text, Configurable<string> configurable, float width = 200)
+    public OptionBuilder AddComboBoxOption(string text, Configurable<string> configurable, float width = 200, params Color[] colors)
     {
         UIelement[] UIarrayOptions =
         [
@@ -80,11 +84,14 @@ internal class OptionBuilder
             {
                 description = configurable.info.description,
                 alignment = FLabelAlignment.Left,
-                verticalAlignment = OpLabel.LabelVAlignment.Center
+                verticalAlignment = OpLabel.LabelVAlignment.Center,
+                color = GetDefaultedColor(colors, 0)
             },
             new OpComboBox(configurable, vector2 + new Vector2(180f, 00f), width)
             {
-                description = configurable.info.description
+                description = configurable.info.description,
+                colorEdge = GetDefaultedColor(colors, 1),
+                colorFill = GetDefaultedColor(colors, 2, MenuColorEffect.rgbBlack)
             }
         ];
 
@@ -103,18 +110,22 @@ internal class OptionBuilder
     /// <param name="multi">A multiplier for the slider's size.</param>
     /// <param name="vertical">If this slider should be vertical.</param>
     /// <returns>The <c>OptionBuilder</c> object.</returns>
-    public OptionBuilder AddSliderOption(string text, Configurable<int> configurable, float multi = 1f, bool vertical = false)
+    public OptionBuilder AddSliderOption(string text, Configurable<int> configurable, float multi = 1f, bool vertical = false, params Color[] colors)
     {
         UIelement[] UIarrayOptions =
         [
             new OpLabel(vector2 + new Vector2(40f, 0f), new Vector2(100f, 24f), text)
             {
                 description = configurable.info.description,
-                verticalAlignment = OpLabel.LabelVAlignment.Center
+                verticalAlignment = OpLabel.LabelVAlignment.Center,
+                color = GetDefaultedColor(colors, 0)
             },
             new OpSlider(configurable, vector2 + new Vector2(200f, 0f), multi, vertical)
             {
-                description = configurable.info.description
+                description = configurable.info.description,
+                colorEdge = GetDefaultedColor(colors, 1),
+                colorFill = GetDefaultedColor(colors, 2, MenuColorEffect.rgbBlack),
+                colorLine = GetDefaultedColor(colors, 3, MenuColorEffect.rgbVeryDarkGrey)
             }
         ];
 
@@ -145,14 +156,14 @@ internal class OptionBuilder
     /// <param name="bigText">If this text should be rendered larger than usual.</param>
     /// <param name="color">The color of the text.</param>
     /// <returns>The <c>OptionBuilder</c> object.</returns>
-    public OptionBuilder AddText(string text, Vector2 size, bool bigText = false, Color color = default)
+    public OptionBuilder AddText(string text, Vector2 size, bool bigText = false, params Color[] colors)
     {
         UIelement[] UIarrayOptions =
         [
-            new OpLabel(vector2 + new Vector2(180f, 0f), size, text, FLabelAlignment.Center, bigText)
+            new OpLabel(vector2 + new Vector2(140f, 0f), size, text, FLabelAlignment.Center, bigText)
             {
                 verticalAlignment = OpLabel.LabelVAlignment.Center,
-                color = color == default ? MenuColorEffect.rgbMediumGrey : color
+                color = GetDefaultedColor(colors, 0)
             }
         ];
 
@@ -161,5 +172,19 @@ internal class OptionBuilder
         vector2.y -= size.y;
 
         return this;
+    }
+
+    private Color GetDefaultedColor(Color[] colors, int index, Color fallback = default)
+    {
+        Color color = colors.ElementAtOrDefault(index);
+
+        if (color == default)
+        {
+            color = fallback != default
+                ? fallback
+                : MenuColorEffect.rgbMediumGrey;
+        }
+
+        return color;
     }
 }
