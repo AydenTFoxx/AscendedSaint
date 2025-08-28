@@ -8,7 +8,7 @@ namespace ControlLib.Utils.Options;
 
 public class ServerOptions
 {
-    public Dictionary<string, bool> MyOptions { get; } = [];
+    public Dictionary<string, bool> MyOptions = [];
 
     public void RefreshOptions(bool isOnline = false)
     {

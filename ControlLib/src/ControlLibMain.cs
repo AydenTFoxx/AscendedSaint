@@ -15,7 +15,7 @@ public class ControlLibMain : BaseUnityPlugin
 {
     public const string PLUGIN_NAME = "ControlLib";
     public const string PLUGIN_GUID = "ynhzrfxn.controllib";
-    public const string PLUGIN_VERSION = "0.3.1";
+    public const string PLUGIN_VERSION = "0.4.0";
 
     private bool isInitialized;
     private readonly CLOptions options;
