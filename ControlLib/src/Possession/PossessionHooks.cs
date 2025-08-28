@@ -41,9 +41,10 @@ public static class PossessionHooks
 
         if (CompatibilityManager.IsRainMeadowEnabled() && !MeadowUtils.IsMine(self)) return;
 
-        if (self.TryGetPossession(out Player? player) && player is not null)
+        if (self.TryGetPossession(out Player player)
+            && player.TryGetPossessionManager(out PossessionManager manager))
         {
-            player.GetPossessionManager().StopPossession(self);
+            manager.StopPossession(self);
         }
     }
 
@@ -105,13 +106,11 @@ public static class PossessionHooks
     private static bool UpdateCreaturePossession(Creature self)
     {
         if ((CompatibilityManager.IsRainMeadowEnabled() && !MeadowUtils.IsMine(self))
-            || !self.TryGetPossession(out Player? player)
-            || player is null)
+            || !self.TryGetPossession(out Player player)
+            || !player.TryGetPossessionManager(out PossessionManager manager))
         {
             return false;
         }
-
-        PossessionManager manager = player.GetPossessionManager();
 
         if (!manager.HasPossession(self) || !manager.IsPossessionValid(self))
         {
