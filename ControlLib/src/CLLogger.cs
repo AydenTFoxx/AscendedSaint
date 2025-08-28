@@ -13,7 +13,7 @@ namespace ControlLib;
 /// <remarks>The generated logs for this mod can be found at <c>"%HOMEPATH%\AppData\LocalLow\VideoCult\Rain World\ControlLib.log.txt"</c>.</remarks>
 internal static class CLLogger
 {
-    private static string? _logPath;
+    private static string _logPath = "";
     private static string LogPath
     {
         get
