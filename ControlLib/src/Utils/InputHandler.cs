@@ -1,5 +1,5 @@
+using System;
 using System.Collections.Generic;
-using System.IO;
 using UnityEngine;
 using static ControlLib.Utils.CompatibilityManager;
 
@@ -69,21 +69,21 @@ public static class InputHandler
         }
         else
         {
-            Keybinds.Add(keybind);
-
             try
             {
-                ImprovedInputHandler.RegisterPlayerKeybind(keybind);
-            }
-            catch (System.Exception ex)
-            {
-                if (ex is not FileNotFoundException)
-                {
-                    CLLogger.LogError("Failed to register IIC-compatible keybind!", ex);
-                }
-            }
+                Keybinds.Add(keybind);
 
-            CLLogger.LogInfo($"Registered new keybind! {keybind}");
+                if (IsIICEnabled())
+                {
+                    ImprovedInputHandler.RegisterPlayerKeybind(keybind);
+                }
+
+                CLLogger.LogInfo($"Registered new keybind! {keybind}");
+            }
+            catch (Exception ex)
+            {
+                CLLogger.LogError($"Failed to register keybind: {keybind}!", ex);
+            }
         }
 
         return keybind;
@@ -98,25 +98,14 @@ public static class InputHandler
 
         static Keys()
         {
-            POSSESS = RegisterKeybind("possess", "Possess", KeyCode.C, KeyCode.Joystick1Button0);
+            POSSESS = RegisterKeybind("possess", "Possess", KeyCode.V, KeyCode.Joystick1Button0);
         }
 
         /// <summary>
         /// Initializes all keybinds of the mod. A dummy method for the sake of registering keybinds as early as possible.
         /// </summary>
-        public static void InitKeybinds()
-        {
-            try
-            {
-                ImprovedInputHandler.GetPlayerKeybind(POSSESS.ID); // test if IIC is enabled and accessible
-
-                CLLogger.LogInfo($"Initialized keybinds successfully; Enabled IIC support!");
-            }
-            catch
-            {
-                CLLogger.LogInfo($"Initialized keybinds successfully -- No IIC support enabled.");
-            }
-        }
+        public static void InitKeybinds() =>
+            CLLogger.LogInfo($"Initialized keybinds successfully. IIC support enabled? {IsIICEnabled()}");
     }
 }
 

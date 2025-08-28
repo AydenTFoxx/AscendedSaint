@@ -1,6 +1,6 @@
 using System.Linq;
 using ControlLib.Utils.Generics;
-using static ControlLib.ControlLibMain;
+using static ControlLib.Utils.OptionUtils;
 
 namespace ControlLib.Possession;
 
@@ -51,8 +51,8 @@ public partial class TargetSelector
 
             if (selector.queryCreatures.Count > 0)
             {
-                bool forceMultiTarget = (ClientOptions?.forceMultitargetPossession ?? false)
-                                        || (ClientOptions?.worldwideMindControl ?? false);
+                bool forceMultiTarget = IsOptionEnabled(CLOptions.FORCE_MULTITARGET_POSSESSION)
+                                        || IsOptionEnabled(CLOptions.WORLDWIDE_MIND_CONTROL);
 
                 if (selector.TrySelectNewTarget(selector.Targets.ElementAtOrDefault(0), out Creature? target))
                 {

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Text;
 using ControlLib.Utils;
@@ -6,8 +5,7 @@ using ControlLib.Utils.Generics;
 using MoreSlugcats;
 using RWCustom;
 using UnityEngine;
-using Random = UnityEngine.Random;
-using static ControlLib.ControlLibMain;
+using static ControlLib.Utils.OptionUtils;
 
 namespace ControlLib.Possession;
 
@@ -17,7 +15,7 @@ namespace ControlLib.Possession;
 /// <param name="player">The player itself.</param>
 public sealed class PossessionManager
 {
-    private static readonly List<Type> BannedCreatureTypes = [typeof(Player), typeof(Overseer)];
+    private static readonly List<System.Type> BannedCreatureTypes = [typeof(Player), typeof(Overseer)];
 
     public int PossessionTimePotential { get; }
     public int MaxPossessionTime => PossessionTimePotential + ((player.room?.game.session is StoryGameSession storySession ? storySession.saveState.deathPersistentSaveData.karma : 0) * 40);
@@ -103,7 +101,10 @@ public sealed class PossessionManager
     /// <param name="target">The creature to possess.</param>
     public void StartPossession(Creature target)
     {
-        if (player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Sofanthiel && player.room is not null)
+        if (player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Sofanthiel
+            && player.room is not null
+            && !IsOptionEnabled(CLOptions.INFINITE_POSSESSION)
+            && !IsOptionEnabled(CLOptions.WORLDWIDE_MIND_CONTROL))
         {
             ScavengerBomb bomb = new(
                 new(
@@ -198,7 +199,7 @@ public sealed class PossessionManager
         {
             player.Blink(10);
 
-            if (!ClientOptions?.infinitePossession ?? false)
+            if (!IsOptionEnabled(CLOptions.INFINITE_POSSESSION))
             {
                 PossessionTime--;
             }
