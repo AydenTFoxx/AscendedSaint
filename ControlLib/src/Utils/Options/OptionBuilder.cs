@@ -3,7 +3,7 @@ using Menu;
 using Menu.Remix.MixedUI;
 using UnityEngine;
 
-namespace ControlLib.Utils;
+namespace ControlLib.Utils.Options;
 
 /// <summary>
 /// Helper class for building <c>OpTab</c>s with a variety of chain-able methods.

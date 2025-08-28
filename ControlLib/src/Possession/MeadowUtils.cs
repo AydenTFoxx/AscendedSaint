@@ -27,7 +27,7 @@ public static class MeadowUtils
 
     public static void RequestOptionsSync()
     {
-        if (!IsOnline || ControlLibMain.ClientOptions is null) return;
+        if (!IsOnline || IsHost) return;
 
         OnlineManager.lobby.owner.SendRPCEvent(PossessionRPCs.RequestRemixOptionsSync, OnlineManager.mePlayer);
     }

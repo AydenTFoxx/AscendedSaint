@@ -1,7 +1,4 @@
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using ControlLib.Utils;
+using ControlLib.Utils.Options;
 using Menu;
 using Menu.Remix.MixedUI;
 using UnityEngine;
@@ -9,74 +6,13 @@ using UnityEngine;
 namespace ControlLib;
 
 /// <summary>
-/// The mod's REMIX options.
+/// Holds definitions and raw values of the mod's REMIX options.
 /// </summary>
+/// <seealso cref="ServerOptions"/>
 public class CLOptions : OptionInterface
 {
-    /// <summary>
-    /// Holds all of the player's client settings.
-    /// </summary>
-    public record class ClientOptions
-    {
-        public string selectionMode = SELECTION_MODE!.Value;
-        public bool invertControls = INVERT_CONTROLS!.Value;
-        public bool meadowSlowdown = MEADOW_SLOWDOWN!.Value;
-        public bool infinitePossession = INFINITE_POSSESSION!.Value;
-        public bool possessAncestors = POSSESS_ANCESTORS!.Value;
-        public bool forceMultitargetPossession = FORCE_MULTITARGET_POSSESSION!.Value;
-        public bool worldwideMindControl = WORLDWIDE_MIND_CONTROL!.Value;
-
-        public ClientOptions()
-        {
-            CLLogger.LogDebug($"Client options are: {this}");
-        }
-
-        /// <summary>
-        /// Sets sync-requiring options of the client to those from the given instance.
-        /// </summary>
-        /// <param name="options">The <c>ClientOptions</c> instance whose values will be copied.</param>
-        public void SetSyncedOptions(ClientOptions options)
-        {
-            meadowSlowdown = options.meadowSlowdown;
-            infinitePossession = options.infinitePossession;
-            possessAncestors = options.possessAncestors;
-            forceMultitargetPossession = options.forceMultitargetPossession;
-            worldwideMindControl = options.worldwideMindControl;
-        }
-
-        public override string ToString() => $"{nameof(ClientOptions)} => [{FormatOptions()}]";
-
-        protected string FormatOptions()
-        {
-            StringBuilder stringBuilder = new();
-
-            foreach (FieldInfo? field in typeof(ClientOptions).GetFields())
-            {
-                if (field is null) continue;
-
-                stringBuilder.Append($"{GetOptionAcronym(field.Name)}: {field.GetValue(this)}; ");
-            }
-
-            return stringBuilder.ToString().Trim();
-        }
-
-        private string GetOptionAcronym(string optionName)
-        {
-            StringBuilder stringBuilder = new();
-
-            stringBuilder.Append(optionName.First());
-
-            foreach (char c in optionName.Where(c => char.IsUpper(c)))
-            {
-                stringBuilder.Append(c);
-            }
-
-            return stringBuilder.ToString().ToUpperInvariant();
-        }
-    }
-
-    public static Configurable<string>? SELECTION_MODE;
-    public static Configurable<bool>? INVERT_CONTROLS;
+    [ClientOption] public static Configurable<string>? SELECTION_MODE;
+    [ClientOption] public static Configurable<bool>? INVERT_CONTROLS;
     public static Configurable<bool>? MEADOW_SLOWDOWN;
     public static Configurable<bool>? INFINITE_POSSESSION;
     public static Configurable<bool>? POSSESS_ANCESTORS;

@@ -1,7 +1,8 @@
 using System;
 using RainMeadow;
 using Random = UnityEngine.Random;
-using static ControlLib.ControlLibMain;
+using ControlLib.Utils.Options;
+using static ControlLib.Utils.OptionUtils;
 
 namespace ControlLib.Possession.Meadow;
 
@@ -12,6 +13,8 @@ public static class PossessionRPCs
     {
         if (onlineTarget.realizedCreature is not Creature target || target.room is null)
         {
+            CLLogger.LogWarning($"Target or room is invalid; Target: {onlineTarget.realizedCreature} | Room: {onlineTarget.realizedCreature?.room}");
+
             rpcEvent.Resolve(new GenericResult.Fail(rpcEvent));
             return;
         }
@@ -32,15 +35,17 @@ public static class PossessionRPCs
     [SoftRPCMethod]
     public static void RequestRemixOptionsSync(RPCEvent rpcEvent, OnlinePlayer onlinePlayer)
     {
-        if (!MeadowUtils.IsHost || ClientOptions is null)
+        if (!MeadowUtils.IsHost)
         {
+            CLLogger.LogWarning("Player is not host; Cannot sync options with other players!");
+
             rpcEvent.Resolve(new GenericResult.Fail(rpcEvent));
             return;
         }
 
         CLLogger.LogInfo($"Syncing REMIX options with player {onlinePlayer.id}...");
 
-        onlinePlayer.SendRPCEvent(SyncRemixOptions, new SharedOptions(ClientOptions));
+        onlinePlayer.SendRPCEvent(SyncRemixOptions, new OnlineServerOptions());
     }
 
     [SoftRPCMethod]
@@ -60,7 +65,7 @@ public static class PossessionRPCs
     }
 
     [SoftRPCMethod]
-    public static void SyncRemixOptions(RPCEvent rpcEvent, SharedOptions options)
+    public static void SyncRemixOptions(RPCEvent rpcEvent, OnlineServerOptions options)
     {
         if (MeadowUtils.IsHost)
         {
@@ -70,9 +75,9 @@ public static class PossessionRPCs
             return;
         }
 
-        ClientOptions?.SetSyncedOptions(options);
+        SharedOptions.SetOptions(options);
 
-        CLLogger.LogInfo($"Synced REMIX options! New values are: {ClientOptions}");
+        CLLogger.LogInfo($"Synced REMIX options! New values are: {SharedOptions}");
     }
 
     public static void SendCreatureRPC<T>(Creature creature, T @delegate, params object[] args)
@@ -126,34 +131,11 @@ public static class PossessionRPCs
         }
     }
 
-    public record class SharedOptions : CLOptions.ClientOptions, Serializer.ICustomSerializable
+    public class OnlineServerOptions : ServerOptions, Serializer.ICustomSerializable
     {
-        public SharedOptions(CLOptions.ClientOptions options)
-        {
-            SetSyncedOptions(options);
-        }
+        public void CustomSerialize(Serializer serializer) =>
+            serializer.Serialize(ref SharedOptions.MyOptions);
 
-        public SharedOptions()
-            : base()
-        {
-        }
-
-        public void CustomSerialize(Serializer serializer)
-        {
-            if (ClientOptions is null)
-            {
-                throw new InvalidProgrammerException("ClientOptions was not initialized");
-            }
-
-            serializer.Serialize(ref ClientOptions.selectionMode);
-            serializer.Serialize(ref ClientOptions.invertControls);
-            serializer.Serialize(ref ClientOptions.meadowSlowdown);
-            serializer.Serialize(ref ClientOptions.infinitePossession);
-            serializer.Serialize(ref ClientOptions.possessAncestors);
-            serializer.Serialize(ref ClientOptions.forceMultitargetPossession);
-            serializer.Serialize(ref ClientOptions.worldwideMindControl);
-        }
-
-        public override string ToString() => $"{nameof(SharedOptions)} => {FormatOptions()}";
+        public override string ToString() => $"{nameof(OnlineServerOptions)} => {FormatOptions()}";
     }
 }

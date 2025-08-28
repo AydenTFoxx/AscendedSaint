@@ -4,7 +4,7 @@ using ControlLib.Utils;
 using ControlLib.Utils.Generics;
 using RWCustom;
 using UnityEngine;
-using static ControlLib.ControlLibMain;
+using static ControlLib.Utils.OptionUtils;
 
 namespace ControlLib.Possession;
 
@@ -110,7 +110,7 @@ public partial class TargetSelector(Player player, PossessionManager manager)
                 playerGraphics.LookAtObject(Targets.First());
 
             int module = CompatibilityManager.IsRainMeadowEnabled()
-                ? !ClientOptions?.meadowSlowdown ?? false
+                ? !IsOptionEnabled(CLOptions.MEADOW_SLOWDOWN)
                     ? 8
                     : 4
                 : 4;
@@ -140,7 +140,7 @@ public partial class TargetSelector(Player player, PossessionManager manager)
         if (Input.Offset == offset && Input.Initialized)
             return false;
 
-        Input.Offset = (ClientOptions?.invertControls ?? false) ? -offset : offset;
+        Input.Offset = IsClientOptionEnabled(CLOptions.INVERT_CONTROLS) ? -offset : offset;
         Input.Initialized = true;
 
         return true;
@@ -212,9 +212,9 @@ public partial class TargetSelector(Player player, PossessionManager manager)
     /// <param name="template">The creature template to be tested.</param>
     /// <returns>A <c>System.Predicate</c> for evaluating if a creature is of a given type.</returns>
     protected static System.Predicate<Creature> GetCreatureSelector(CreatureTemplate template) =>
-        ClientOptions?.worldwideMindControl ?? false
+        IsOptionEnabled(CLOptions.WORLDWIDE_MIND_CONTROL)
             ? IsValidSelectionTarget
-            : ClientOptions?.possessAncestors ?? false
+            : IsOptionEnabled(CLOptions.POSSESS_ANCESTORS)
                 ? c => c.Template.ancestor == template.ancestor
                 : c => c.Template == template;
 
@@ -247,7 +247,7 @@ public partial class TargetSelector(Player player, PossessionManager manager)
     /// <param name="player">The player itself.</param>
     /// <returns>A float determining how far a creature can be from the player to be eligible for possession.</returns>
     protected static float GetPossessionRange(Player player) =>
-        ClientOptions?.worldwideMindControl ?? false
+        IsOptionEnabled(CLOptions.WORLDWIDE_MIND_CONTROL)
             ? 9999f
             : player.room?.game.session is ArenaGameSession
                 ? 1024f
@@ -280,7 +280,7 @@ public partial class TargetSelector(Player player, PossessionManager manager)
     /// one item per creature template (that is, one Yellow Lizard, one Small Centipede, etc.)
     /// </remarks>
     protected static WeakList<Creature> QueryCreatures(Player player) =>
-        (player.monkAscension && (!ClientOptions?.forceMultitargetPossession ?? false))
+        (player.monkAscension && !IsOptionEnabled(CLOptions.FORCE_MULTITARGET_POSSESSION))
             ? [.. GetCreatures(player).Distinct(new TargetEqualityComparer())]
             : [.. GetCreatures(player)];
 
@@ -305,7 +305,7 @@ public partial class TargetSelector(Player player, PossessionManager manager)
     /// <remarks>Has explicit support for Rain Meadow compatibility, where the host's options are also taken into account for this check.</remarks>
     protected static bool ShouldSetMushroomCounter(Player player, int count) =>
         CompatibilityManager.IsRainMeadowEnabled()
-            ? (!MeadowUtils.IsOnline || (ClientOptions?.meadowSlowdown ?? false)) && player.mushroomCounter < count
+            ? (!MeadowUtils.IsOnline || IsOptionEnabled(CLOptions.MEADOW_SLOWDOWN)) && player.mushroomCounter < count
             : player.mushroomCounter < count;
 
     /// <summary>

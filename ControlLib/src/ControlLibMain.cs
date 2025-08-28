@@ -17,8 +17,6 @@ public class ControlLibMain : BaseUnityPlugin
     public const string PLUGIN_GUID = "ynhzrfxn.controllib";
     public const string PLUGIN_VERSION = "0.3.1";
 
-    public static CLOptions.ClientOptions? ClientOptions { get; private set; }
-
     private bool isInitialized;
     private readonly CLOptions options;
 
@@ -28,7 +26,6 @@ public class ControlLibMain : BaseUnityPlugin
         CLLogger.CleanLogFile();
 
         options = new();
-        ClientOptions = new();
     }
 
     public void OnEnable()
@@ -57,9 +54,12 @@ public class ControlLibMain : BaseUnityPlugin
     {
         try
         {
+            CompatibilityManager.ApplyHooks();
             PossessionHooks.ApplyHooks();
 
             On.GameSession.ctor += GameSessionHook;
+            On.GameSession.AddPlayer += AddPlayerHook;
+
             On.RainWorld.OnModsInit += OnModsInitHook;
 
             CLLogger.LogDebug("Successfully applied all hooks to the game.");
@@ -74,9 +74,12 @@ public class ControlLibMain : BaseUnityPlugin
     {
         try
         {
+            CompatibilityManager.RemoveHooks();
             PossessionHooks.RemoveHooks();
 
             On.GameSession.ctor -= GameSessionHook;
+            On.GameSession.AddPlayer -= AddPlayerHook;
+
             On.RainWorld.OnModsInit -= OnModsInitHook;
 
             CLLogger.LogDebug("Removed all hooks from the game.");
@@ -87,23 +90,31 @@ public class ControlLibMain : BaseUnityPlugin
         }
     }
 
+    private void AddPlayerHook(On.GameSession.orig_AddPlayer orig, GameSession self, AbstractCreature player)
+    {
+        orig.Invoke(self, player);
+
+        bool isOnlineSession = CompatibilityManager.IsRainMeadowEnabled();
+
+        if (self.game.Players.Count <= 1 && (!isOnlineSession || MeadowUtils.IsHost))
+        {
+            OptionUtils.SharedOptions.RefreshOptions(isOnlineSession);
+        }
+        else
+        {
+            CLLogger.LogDebug($"{self.game.FirstRealizedPlayer} is already realized, ignoring.");
+        }
+    }
+
     private void GameSessionHook(On.GameSession.orig_ctor orig, GameSession self, RainWorldGame game)
     {
         orig.Invoke(self, game);
 
-        if (CompatibilityManager.IsRainMeadowEnabled()
-            && MeadowUtils.IsOnline && !MeadowUtils.IsHost)
+        if (CompatibilityManager.IsRainMeadowEnabled() && !MeadowUtils.IsHost)
         {
-            if (ClientOptions is not null) // Sane defaults for when the host does not have this mod enabled
-            {
-                ClientOptions.meadowSlowdown = false;
-            }
+            OptionUtils.SharedOptions.SetOptions(null);
 
             MeadowUtils.RequestOptionsSync();
-        }
-        else
-        {
-            ClientOptions = new();
         }
     }
 
