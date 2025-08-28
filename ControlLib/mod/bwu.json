@@ -1,0 +1,17 @@
+{
+  "Name": "ControlLib",
+  "ID": "ynhzrfxn.controllib",
+  "Version": "0.4.0",
+  "WorkshopID": 3556563205,
+  "LatestGameVersion": "v1.10.4",
+  "UpdateTitle": true,
+  "UpdateDescription": true,
+  "MarkAsPublic": false,
+  "Tags": [
+    "Game Mechanics",
+    "Dependency",
+    "Downpour",
+    "Tools",
+    "Watcher"
+  ]
+}
