@@ -10,9 +10,11 @@ namespace ControlLib;
 /// <summary>
 /// A custom logger which sends messages to both the game's and this mod's log files.
 /// </summary>
-/// <remarks>The generated logs for this mod can be found at <c>"%HOMEPATH%\AppData\LocalLow\VideoCult\Rain World\ControlLib.log.txt"</c>.</remarks>
+/// <remarks>The generated logs for this mod can be found at <c>"%HOMEPATH%\AppData\LocalLow\Videocult\Rain World\ControlLib.log"</c></remarks>
 internal static class CLLogger
 {
+    internal static bool TRACE_LOGS = false;
+
     private static string _logPath = "";
     private static string LogPath
     {
@@ -39,6 +41,9 @@ internal static class CLLogger
         WriteToLogFile(FormatMessage(message, logLevel));
 
         if (useUnityLogger) Debug.Log(FormatMessage(message, logLevel, addNewLine: false, addDateTime: false));
+
+        if (TRACE_LOGS)
+            WriteToLogFile($"-- Stack Trace: (Forced){Environment.NewLine}{Environment.StackTrace}{Environment.NewLine}");
     }
 
     /// <summary>
