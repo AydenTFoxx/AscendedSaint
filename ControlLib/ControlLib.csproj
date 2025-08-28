@@ -5,18 +5,10 @@
         <TargetFramework>net481</TargetFramework>
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
-        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-        <PostBuildEvent>copy $(MSBuildProjectDirectory)\bin\$(Configuration)\ControlLib.dll $(MSBuildProjectDirectory)\mod\plugins</PostBuildEvent>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-        <DebugType>full</DebugType>
+        <DebugType>portable</DebugType>
         <DebugSymbols>true</DebugSymbols>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-        <DebugType>pdbonly</DebugType>
-        <Optimize>true</Optimize>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <PostBuildEvent>copy $(MSBuildProjectDirectory)\bin\$(Configuration)\ControlLib.* $(MSBuildProjectDirectory)\mod\plugins</PostBuildEvent>
     </PropertyGroup>
 
     <ItemGroup>
