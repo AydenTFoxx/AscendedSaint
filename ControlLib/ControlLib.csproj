@@ -48,6 +48,9 @@
         <Reference Include="Rain Meadow">
             <HintPath>lib\Rain Meadow.dll</HintPath>
         </Reference>
+        <Reference Include="Unity.Mathematics">
+            <HintPath>lib\RainWorld_Data\Managed\Unity.Mathematics.dll</HintPath>
+        </Reference>
         <Reference Include="UnityEngine">
             <HintPath>lib\RainWorld_Data\Managed\UnityEngine.dll</HintPath>
         </Reference>
