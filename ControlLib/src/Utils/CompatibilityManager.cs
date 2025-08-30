@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using UnityEngine;
 
 namespace ControlLib.Utils;
 
@@ -8,18 +11,48 @@ namespace ControlLib.Utils;
 /// </summary>
 public static class CompatibilityManager
 {
-    private static string[] SupportedModIDs { get; } = ["henpemaz_rainmeadow", "improved-input-config"];
+    private static string[][] SupportedModIDs { get; } = [
+        ["henpemaz_rainmeadow", "3388224007"],  // Rain Meadow
+        ["improved-input-config", "3458119961"] // Improved Input Config: Extended
+    ];
     private static Dictionary<string, bool> ManagedMods { get; } = [];
 
     /// <summary>
-    /// Enables the manager's hooks for ensuring mod compatibility.
+    /// Queries the client's list of enabled mods for toggling compatibility features.
     /// </summary>
-    public static void ApplyHooks() => On.RainWorld.PreModsInit += PreModsInitHook;
+    public static void CheckModCompats()
+    {
+        CLLogger.LogDebug("Checking compatibility mods...");
 
-    /// <summary>
-    /// Disables the manager's hooks for mod compatibility.
-    /// </summary>
-    public static void RemoveHooks() => On.RainWorld.PreModsInit -= PreModsInitHook;
+        try
+        {
+            StreamReader reader = new(Path.Combine(Application.streamingAssetsPath, "enabledMods.txt"));
+
+            while (!reader.EndOfStream)
+            {
+                string modID = reader.ReadLine();
+
+                if (modID.StartsWith("[WORKSHOP]"))
+                    modID = modID.Split('\\').Last();
+
+                foreach (string[] supportedIDs in SupportedModIDs)
+                {
+                    if (supportedIDs.Contains(modID))
+                    {
+                        modID = supportedIDs[0];
+
+                        CLLogger.LogInfo($"Adding compatibility layer for: {modID}");
+
+                        ManagedMods.Add(modID, true);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            CLLogger.LogError("Failed to read enabled mods file!", ex);
+        }
+    }
 
     /// <summary>
     /// Determines if a given mod is currently enabled.
@@ -50,24 +83,4 @@ public static class CompatibilityManager
     /// <param name="value">The value to be set.</param>
     /// <remarks>Warning: Once disabled, a compatibility layer will not be re-enabled until a restart. Use with care.</remarks>
     public static void SetModCompatibility(string modID, bool value = true) => ManagedMods[modID] = value;
-
-    /// <summary>
-    /// Queries the client's list of enabled mods for toggling compatibility features.
-    /// </summary>
-    private static void PreModsInitHook(On.RainWorld.orig_PreModsInit orig, RainWorld self)
-    {
-        orig.Invoke(self);
-
-        CLLogger.LogDebug("Checking compatibility mods...");
-
-        foreach (string modID in SupportedModIDs)
-        {
-            if (self.options.enabledMods.Contains(modID))
-            {
-                CLLogger.LogInfo($"Adding compatibility layer for {modID}.");
-
-                ManagedMods.Add(modID, true);
-            }
-        }
-    }
 }
