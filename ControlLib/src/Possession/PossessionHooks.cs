@@ -18,6 +18,7 @@ public static class PossessionHooks
         IL.Creature.Update += UpdatePossessedCreatureILHook;
 
         On.Creature.Die += RemovePossessionHook;
+        On.Player.AddFood += AddPossessionTimeHook;
         On.Player.Update += UpdatePlayerPossessionHook;
     }
 
@@ -29,7 +30,18 @@ public static class PossessionHooks
         IL.Creature.Update -= UpdatePossessedCreatureILHook;
 
         On.Creature.Die -= RemovePossessionHook;
+        On.Player.AddFood -= AddPossessionTimeHook;
         On.Player.Update -= UpdatePlayerPossessionHook;
+    }
+
+    private static void AddPossessionTimeHook(On.Player.orig_AddFood orig, Player self, int add)
+    {
+        orig.Invoke(self, add);
+
+        if (self.TryGetPossessionManager(out PossessionManager manager))
+        {
+            manager.PossessionTime += add * 40;
+        }
     }
 
     /// <summary>
