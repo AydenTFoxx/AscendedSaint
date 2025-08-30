@@ -1,10 +1,13 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
+using ControlLib.Possession.Graphics;
 using ControlLib.Utils;
 using ControlLib.Utils.Generics;
 using MoreSlugcats;
 using RWCustom;
 using UnityEngine;
+using Random = UnityEngine.Random;
 using static ControlLib.Utils.OptionUtils;
 
 namespace ControlLib.Possession;
@@ -15,34 +18,49 @@ namespace ControlLib.Possession;
 /// <param name="player">The player itself.</param>
 public sealed class PossessionManager
 {
-    private static readonly List<System.Type> BannedCreatureTypes = [typeof(Player), typeof(Overseer)];
+    private static readonly List<Type> BannedCreatureTypes = [typeof(Player), typeof(Overseer)];
 
     public int PossessionTimePotential { get; }
+    public bool IsHardmodeSlugcat { get; }
+    public bool IsAttunedSlugcat { get; }
     public int MaxPossessionTime => PossessionTimePotential + ((player.room?.game.session is StoryGameSession storySession ? storySession.saveState.deathPersistentSaveData.karma : 0) * 40);
 
     private readonly WeakCollection<Creature> MyPossessions = [];
     private readonly Player player;
+    private PossessionTimer possessionTimer;
 
-    public TargetSelector TargetSelector { get; private set; }
-    public int PossessionCooldown { get; private set; }
-    public int PossessionTime { get; private set; }
+    public TargetSelector TargetSelector { get; }
+
+    public int PossessionCooldown { get; set; }
+    public float PossessionTime { get; set; }
+
     public bool IsPossessing => MyPossessions.Count > 0;
+    public bool LowPossessionTime => IsPossessing && PossessionTime / MaxPossessionTime < 0.34f;
 
     public PossessionManager(Player player)
     {
         this.player = player;
 
-        TargetSelector = new(player, this);
+        IsHardmodeSlugcat = player.SlugCatClass == SlugcatStats.Name.Red
+            || player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Artificer
+            || player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Sofanthiel;
 
-        PossessionTimePotential = player.SlugCatClass == SlugcatStats.Name.Yellow || player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Saint
-            ? 520
-            : player.SlugCatClass == SlugcatStats.Name.Red || player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Artificer
-                ? 180
-                : player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Sofanthiel
-                    ? 1
+        IsAttunedSlugcat = player.SlugCatClass == SlugcatStats.Name.Yellow
+            || player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Saint;
+
+        PossessionTimePotential = player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Sofanthiel
+            ? 1
+            : IsAttunedSlugcat
+                ? 520
+                : IsHardmodeSlugcat
+                    ? 180
                     : 360;
 
         PossessionTime = MaxPossessionTime;
+
+        TargetSelector = new(player, this);
+
+        possessionTimer = new(this);
     }
 
     /// <summary>
@@ -120,15 +138,15 @@ public sealed class PossessionManager
             bomb.abstractPhysicalObject.RealizeInRoom();
             bomb.Explode(player.mainBodyChunk);
 
-            CLLogger.LogMessage($"Game over, {player.SlugCatClass}.");
+            CLLogger.LogMessage($"{(Random.value < 0.5f ? "Game over" : "Goodbye")}, {player.SlugCatClass}.");
             return;
         }
 
         MyPossessions.Add(target);
 
-        player.room?.AddObject(new TemplarCircle(target, target.mainBodyChunk.pos, 48f, 8f, 2f, 12, true));
-        player.room?.AddObject(new ShockWave(target.mainBodyChunk.pos, 100f, 0.08f, 4, false));
-        player.room?.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, target.mainBodyChunk, loop: false, 1f, 1.25f + (Random.value * 1.25f));
+        target.room?.AddObject(new TemplarCircle(target, target.mainBodyChunk.pos, 48f, 8f, 2f, 12, true));
+        target.room?.AddObject(new ShockWave(target.mainBodyChunk.pos, 100f, 0.08f, 4, false));
+        target.room?.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, target.mainBodyChunk, loop: false, 1f, 1.25f + (Random.value * 1.25f));
 
         player.controller ??= GetFadeOutController(player);
 
@@ -162,12 +180,12 @@ public sealed class PossessionManager
         {
             for (int k = 0; k < 20; k++)
             {
-                target.room?.AddObject(new Spark(target.mainBodyChunk.pos, Custom.RNV() * Random.value * 40f, new Color(1f, 1f, 1f), null, 30, 120));
+                player.room?.AddObject(new Spark(player.mainBodyChunk.pos, Custom.RNV() * Random.value * 40f, new Color(1f, 1f, 1f), null, 30, 120));
             }
         }
 
         target.room?.AddObject(new ReverseShockwave(target.mainBodyChunk.pos, 64f, 0.05f, 24));
-        player.room?.PlaySound(SoundID.HUD_Pause_Game, target.mainBodyChunk, loop: false, 1f, 0.5f);
+        target.room?.PlaySound(SoundID.HUD_Pause_Game, target.mainBodyChunk, loop: false, 1f, 0.5f);
 
         if (CompatibilityManager.IsRainMeadowEnabled() && MeadowUtils.IsOnline)
         {
@@ -191,40 +209,78 @@ public sealed class PossessionManager
         {
             TargetSelector.ResetSelectorInput();
 
+            if (IsClientOptionValue(CLOptions.SELECTION_MODE, "ascension")
+                && !TargetSelector.Input.QueriedCursor)
+            {
+                TargetSelector.QueryTargetCursor();
+            }
+
             if (TargetSelector.HasValidTargets)
                 TargetSelector.ApplySelectedTargets();
+
+            TargetSelector.ExceededTimeLimit = false;
         }
 
         if (IsPossessing)
         {
+            if (player.graphicsModule is PlayerGraphics playerGraphics)
+            {
+                playerGraphics.LookAtNothing();
+            }
+
             player.Blink(10);
 
             if (!IsOptionEnabled(CLOptions.INFINITE_POSSESSION))
             {
-                PossessionTime--;
+                PossessionTime -= IsHardmodeSlugcat ? 0.75f : 1f;
             }
 
-            if (PossessionTime < 1 || !player.Consious)
+            if (LowPossessionTime)
+            {
+                player.aerobicLevel += 0.025f;
+                player.airInLungs = 1f - (PossessionTime / MaxPossessionTime);
+            }
+
+            if (PossessionTime <= 0f || !player.Consious)
             {
                 if (player.Consious)
                 {
                     player.aerobicLevel = 1f;
-                    player.airInLungs *= 0.25f;
                     player.exhausted = true;
+                    player.lungsExhausted = true;
                     player.Stun(35);
+
+                    PossessionTime = -40;
                 }
+
+                PossessionCooldown = 40;
 
                 ResetAllPossessions();
             }
         }
-        else if (PossessionTime < MaxPossessionTime)
-        {
-            PossessionTime++;
-        }
-
-        if (PossessionCooldown > 0)
+        else if (PossessionCooldown > 0)
         {
             PossessionCooldown--;
+        }
+        else if (PossessionTime < MaxPossessionTime)
+        {
+            PossessionTime += IsHardmodeSlugcat ? 0.25f : 0.5f;
+        }
+        else if (PossessionTime > MaxPossessionTime)
+        {
+            PossessionTime = MaxPossessionTime;
+        }
+
+        if (player.room is not null && possessionTimer.room != player.room)
+        {
+            if (possessionTimer.slatedForDeletetion)
+            {
+                CLLogger.LogWarning($"{possessionTimer} was deleted; Recreating object.");
+
+                possessionTimer = new(this);
+            }
+
+            possessionTimer.TryRealizeInRoom(player.room);
         }
     }
 
@@ -260,8 +316,8 @@ public sealed class PossessionManager
 
     public class FadeOutController(int x, int y) : Player.PlayerController
     {
-        public int FadeOutX() => x = (int)Mathf.Lerp(x, 0f, 20f);
-        public int FadeOutY() => y = (int)Mathf.Lerp(y, 0f, 20f);
+        public int FadeOutX() => x = (int)Mathf.Lerp(x, 0f, 0.5f);
+        public int FadeOutY() => y = (int)Mathf.Lerp(y, 0f, 0.5f);
 
         public override Player.InputPackage GetInput() =>
             new(gamePad: false, Options.ControlSetup.Preset.None, FadeOutX(), FadeOutY(), jmp: false, thrw: false, pckp: false, mp: false, crouchToggle: false);
