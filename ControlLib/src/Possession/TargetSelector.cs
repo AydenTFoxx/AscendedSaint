@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using ControlLib.Possession.Graphics;
 using ControlLib.Utils;
 using ControlLib.Utils.Generics;
 using RWCustom;
@@ -16,7 +18,7 @@ namespace ControlLib.Possession;
 public partial class TargetSelector(Player player, PossessionManager manager)
 {
     public WeakList<Creature> Targets { get; protected set; } = [];
-    public TargetSelectionState State { get; protected set; } = TargetSelectionState.IdleState;
+    public TargetSelectionState State { get; protected set; } = TargetSelectionState.Idle;
     public TargetInput Input { get; protected set; } = new();
 
     public virtual bool HasValidTargets
@@ -37,19 +39,49 @@ public partial class TargetSelector(Player player, PossessionManager manager)
         }
     }
 
+    public bool _exceededTimeLimit;
+    public bool ExceededTimeLimit
+    {
+        get
+        {
+            if (Input.InputTime > PossessionManager.PossessionTimePotential)
+            {
+                _exceededTimeLimit = true;
+            }
+            return _exceededTimeLimit;
+        }
+        set => _exceededTimeLimit = value;
+    }
+
     public Player Player => player;
     public PossessionManager PossessionManager => manager;
 
     protected WeakList<Creature> queryCreatures = [];
+    protected TargetCursor targetCursor = new(manager);
 
     /// <summary>
     /// Applies the current selection of targets for possession.
     /// </summary>
     public virtual void ApplySelectedTargets()
     {
-        MoveToState(TargetSelectionState.ReadyState);
+        MoveToState(TargetSelectionState.Ready);
 
         State.UpdatePhase(this);
+    }
+
+    public void QueryTargetCursor()
+    {
+        if (State is not QueryingState queryingState) return;
+
+        queryCreatures = QueryCreatures(player, targetCursor);
+        queryingState.UpdatePhase(this, isRecursive: true);
+
+        Input.QueriedCursor = true;
+
+        if (IsClientOptionValue(CLOptions.SELECTION_MODE, "ascension"))
+        {
+            targetCursor.ResetCursor();
+        }
     }
 
     /// <summary>
@@ -58,19 +90,13 @@ public partial class TargetSelector(Player player, PossessionManager manager)
     /// <param name="state">The new state of the state machine.</param>
     public void MoveToState(TargetSelectionState state)
     {
-        if (State == state)
+        try
         {
-            CLLogger.LogWarning($"Cannot move to a state the instance is already at: {state}");
+            State = State.MoveToState(state);
         }
-        else
+        catch (Exception ex)
         {
-            if (state.Order - State.Order > 1)
-            {
-                CLLogger.LogInfo($"Warning! Skipping from {State} to {state}.");
-            }
-
-            State = state;
-            CLLogger.LogInfo($"Moving into state: {State}");
+            CLLogger.LogError($"Failed to move to state {state}!", ex);
         }
     }
 
@@ -81,7 +107,7 @@ public partial class TargetSelector(Player player, PossessionManager manager)
     {
         Input = new();
 
-        if (!manager.IsPossessing)
+        if (!PossessionManager.IsPossessing)
         {
             player.controller = null;
         }
@@ -96,8 +122,16 @@ public partial class TargetSelector(Player player, PossessionManager manager)
 
         Input.InputTime++;
 
-        if (Input.InputTime > manager.PossessionTimePotential || manager.PossessionCooldown > 0)
+        if (ExceededTimeLimit || PossessionManager.PossessionCooldown > 0)
         {
+            if (ExceededTimeLimit)
+            {
+                PossessionManager.PossessionCooldown = 80;
+
+                player.exhausted = true;
+                player.aerobicLevel = 1f;
+            }
+
             Input.LockAction = true;
             return;
         }
@@ -109,11 +143,7 @@ public partial class TargetSelector(Player player, PossessionManager manager)
             if (player.graphicsModule is PlayerGraphics playerGraphics)
                 playerGraphics.LookAtObject(Targets.First());
 
-            int module = CompatibilityManager.IsRainMeadowEnabled()
-                ? !IsOptionEnabled(CLOptions.MEADOW_SLOWDOWN)
-                    ? 8
-                    : 4
-                : 4;
+            int module = CompatibilityManager.IsRainMeadowEnabled() && !IsOptionEnabled(CLOptions.MEADOW_SLOWDOWN) ? 8 : 4;
 
             if (Input.InputTime % module == 0)
             {
@@ -133,6 +163,23 @@ public partial class TargetSelector(Player player, PossessionManager manager)
     {
         Player.InputPackage input = InputHandler.GetVanillaInput(player);
         int offset = input.x + input.y;
+
+        if (IsClientOptionValue(CLOptions.SELECTION_MODE, "ascension"))
+        {
+            if (input.x == 0 && input.y == 0 && Input.Initialized) return false;
+
+            if (targetCursor.slatedForDeletetion)
+            {
+                CLLogger.LogWarning($"{targetCursor} was deleted; Recreating object.");
+
+                targetCursor = new(manager);
+            }
+
+            targetCursor.UpdateCursor(input);
+
+            Input.Initialized = true;
+            return false;
+        }
 
         if (offset == 0 && Input.Offset != offset)
             Input.Offset = 0;
@@ -200,7 +247,7 @@ public partial class TargetSelector(Player player, PossessionManager manager)
     /// <param name="player">The player to be tested.</param>
     /// <param name="template">The creature template to seach for.</param>
     /// <returns>A list of all creatures in the room with the given template, if any.</returns>
-    protected static List<Creature> GetAllCreatures(Player player, CreatureTemplate template) =>
+    public static List<Creature> GetAllCreatures(Player player, CreatureTemplate template) =>
         [.. player.room.abstractRoom.creatures
             .Select(ac => ac.realizedCreature)
             .Where(c => c is not null && GetCreatureSelector(template).Invoke(c))
@@ -210,8 +257,8 @@ public partial class TargetSelector(Player player, PossessionManager manager)
     /// Retrieves the selector predicate to be used for determining creature type matches.
     /// </summary>
     /// <param name="template">The creature template to be tested.</param>
-    /// <returns>A <c>System.Predicate</c> for evaluating if a creature is of a given type.</returns>
-    protected static System.Predicate<Creature> GetCreatureSelector(CreatureTemplate template) =>
+    /// <returns>A <c>Predicate</c> for evaluating if a creature is of a given type.</returns>
+    public static Predicate<Creature> GetCreatureSelector(CreatureTemplate template) =>
         IsOptionEnabled(CLOptions.WORLDWIDE_MIND_CONTROL)
             ? IsValidSelectionTarget
             : IsOptionEnabled(CLOptions.POSSESS_ANCESTORS)
@@ -223,7 +270,7 @@ public partial class TargetSelector(Player player, PossessionManager manager)
     /// </summary>
     /// <param name="player">The player to be tested.</param>
     /// <returns>A list of all possessable creatures in the room, if any.</returns>
-    protected static List<Creature> GetCreatures(Player player)
+    public static List<Creature> GetCreatures(Player player, TargetCursor cursor)
     {
         if (player.room is null)
         {
@@ -231,12 +278,16 @@ public partial class TargetSelector(Player player, PossessionManager manager)
             return [];
         }
 
+        Vector2 pos = IsClientOptionValue(CLOptions.SELECTION_MODE, "ascension")
+            ? cursor.targetPos + cursor.camPos
+            : player.mainBodyChunk.pos;
+
         List<Creature> creatures = [.. player.room.abstractRoom.creatures
             .Select(ac => ac.realizedCreature)
-            .Where(c => c != player && IsValidSelectionTarget(c) && IsInPossessionRange(player, c))
+            .Where(c => c != player && IsValidSelectionTarget(c) && IsInPossessionRange(pos, c))
         ];
 
-        creatures.Sort(new TargetSorter(player.mainBodyChunk.pos));
+        creatures.Sort(new TargetSorter(pos));
 
         return creatures;
     }
@@ -244,14 +295,16 @@ public partial class TargetSelector(Player player, PossessionManager manager)
     /// <summary>
     /// Retrieves the max range at which the player can possess creatures.
     /// </summary>
-    /// <param name="player">The player itself.</param>
+    /// <param name="gameSession">The current game session.</param>
     /// <returns>A float determining how far a creature can be from the player to be eligible for possession.</returns>
-    protected static float GetPossessionRange(Player player) =>
+    public static float GetPossessionRange(GameSession? gameSession) =>
         IsOptionEnabled(CLOptions.WORLDWIDE_MIND_CONTROL)
             ? 9999f
-            : player.room?.game.session is ArenaGameSession
-                ? 1024f
-                : 720f;
+            : IsClientOptionValue(CLOptions.SELECTION_MODE, "ascension")
+                ? 120f
+                : gameSession is ArenaGameSession
+                    ? 1024f
+                    : 720f;
 
     /// <summary>
     /// Determines if the given creature is within possession range of the player.
@@ -259,15 +312,15 @@ public partial class TargetSelector(Player player, PossessionManager manager)
     /// <param name="player">The player to be tested.</param>
     /// <param name="creature">The creature to possess.</param>
     /// <returns><c>true</c> if the creature is within possession range, <c>false</c> otherwise.</returns>
-    protected static bool IsInPossessionRange(Player player, Creature creature) =>
-        Custom.DistLess(player.mainBodyChunk.pos, creature.mainBodyChunk.pos, GetPossessionRange(player));
+    public static bool IsInPossessionRange(Vector2 pos, Creature creature) =>
+        Custom.DistLess(pos, creature.mainBodyChunk.pos, GetPossessionRange(creature.room?.game.session));
 
     /// <summary>
     /// Determines if the given creature is a valid target for possession.
     /// </summary>
     /// <param name="creature">The creature to be tested.</param>
     /// <returns><c>true</c> if the creature can be possessed, <c>false</c> otherwise.</returns>
-    protected static bool IsValidSelectionTarget(Creature creature) =>
+    public static bool IsValidSelectionTarget(Creature creature) =>
         !PossessionManager.IsBannedPossessionTarget(creature) && !creature.abstractCreature.controlled;
 
     /// <summary>
@@ -279,10 +332,10 @@ public partial class TargetSelector(Player player, PossessionManager manager)
     /// If the player is currently using Saint's Ascension ability, the returned list will only contain
     /// one item per creature template (that is, one Yellow Lizard, one Small Centipede, etc.)
     /// </remarks>
-    protected static WeakList<Creature> QueryCreatures(Player player) =>
+    public static WeakList<Creature> QueryCreatures(Player player, TargetCursor cursor) =>
         (player.monkAscension && !IsOptionEnabled(CLOptions.FORCE_MULTITARGET_POSSESSION))
-            ? [.. GetCreatures(player).Distinct(new TargetEqualityComparer())]
-            : [.. GetCreatures(player)];
+            ? [.. GetCreatures(player, cursor).Distinct(new TargetEqualityComparer())]
+            : [.. GetCreatures(player, cursor)];
 
     /// <summary>
     /// Evaluates the value to be set for the player's <c>mushroomCounter</c> field.
@@ -291,7 +344,7 @@ public partial class TargetSelector(Player player, PossessionManager manager)
     /// <param name="count">The value to be set.</param>
     /// <returns>The new value for the player's <c>mushroomCounter</c> field.</returns>
     /// <remarks>If the player is in a Rain Meadow lobby, this will also depend on the host's <c>meadowSlowdown</c> setting.</remarks>
-    protected static int SetMushroomCounter(Player player, int count) =>
+    public static int SetMushroomCounter(Player player, int count) =>
         ShouldSetMushroomCounter(player, count)
             ? count
             : player.mushroomCounter;
@@ -303,7 +356,7 @@ public partial class TargetSelector(Player player, PossessionManager manager)
     /// <param name="count">The value to be set.</param>
     /// <returns><c>true</c> if the value should be updated, <c>false</c> otherwise.</returns>
     /// <remarks>Has explicit support for Rain Meadow compatibility, where the host's options are also taken into account for this check.</remarks>
-    protected static bool ShouldSetMushroomCounter(Player player, int count) =>
+    public static bool ShouldSetMushroomCounter(Player player, int count) =>
         CompatibilityManager.IsRainMeadowEnabled()
             ? (!MeadowUtils.IsOnline || IsOptionEnabled(CLOptions.MEADOW_SLOWDOWN)) && player.mushroomCounter < count
             : player.mushroomCounter < count;
@@ -346,6 +399,7 @@ public partial class TargetSelector(Player player, PossessionManager manager)
     {
         public bool Initialized { get; set; }
         public bool LockAction { get; set; }
+        public bool QueriedCursor { get; set; }
         public int InputTime { get; set; }
         public int Offset { get; set; }
     }
