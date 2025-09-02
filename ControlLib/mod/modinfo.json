@@ -1,7 +1,7 @@
 {
   "id": "ynhzrfxn.controllib",
   "name": "ControlLib",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "target_game_version": "v1.10.4",
   "authors": "YannahTFoxx",
   "description": "Allows arbitrary control of creatures using Safari's code as a backend.<LINE>Also supports multiple players controlling any amount of creatures at once.",

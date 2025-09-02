@@ -41,9 +41,9 @@ public static class CompatibilityManager
                     {
                         modID = supportedIDs[0];
 
-                        CLLogger.LogInfo($"Adding compatibility layer for: {modID}");
-
                         ManagedMods.Add(modID, true);
+
+                        CLLogger.LogInfo($"Added compatibility layer for: {modID}");
                     }
                 }
             }
@@ -80,7 +80,7 @@ public static class CompatibilityManager
     /// Overrides the configured compatibility features for a given mod.
     /// </summary>
     /// <param name="modID">The identifier of the mod.</param>
-    /// <param name="value">The value to be set.</param>
+    /// <param name="enable">Whether or not compatibility with the given mod should be enabled.</param>
     /// <remarks>Warning: Once disabled, a compatibility layer will not be re-enabled until a restart. Use with care.</remarks>
-    public static void SetModCompatibility(string modID, bool value = true) => ManagedMods[modID] = value;
+    public static void ToggleModCompatibility(string modID, bool enable = true) => ManagedMods[modID] = enable;
 }

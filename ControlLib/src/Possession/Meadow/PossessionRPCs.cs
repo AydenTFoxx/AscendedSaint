@@ -3,6 +3,7 @@ using RainMeadow;
 using Random = UnityEngine.Random;
 using ControlLib.Utils.Options;
 using static ControlLib.Utils.OptionUtils;
+using System.Linq;
 
 namespace ControlLib.Possession.Meadow;
 
@@ -43,7 +44,12 @@ public static class PossessionRPCs
             return;
         }
 
-        CLLogger.LogInfo($"Syncing REMIX options with player {onlinePlayer.id}...");
+        if (SharedOptions.MyOptions.Count < 1)
+        {
+            SharedOptions.RefreshOptions(true);
+        }
+
+        CLLogger.LogInfo($"Syncing REMIX options with player {onlinePlayer}...");
 
         onlinePlayer.SendRPCEvent(SyncRemixOptions, new OnlineServerOptions());
     }
@@ -87,13 +93,13 @@ public static class PossessionRPCs
 
         if (onlineCreature is null) return;
 
+        args = [.. args.Prepend(onlineCreature)];
+
         foreach (OnlinePlayer onlinePlayer in OnlineManager.players)
         {
             if (onlinePlayer.isMe) continue;
 
-            RPCEvent rpc = onlinePlayer.SendRPCEvent(@delegate, onlineCreature, args);
-
-            CLLogger.LogDebug($"Creature RPC is: {rpc}");
+            onlinePlayer.SendRPCEvent(@delegate, args);
         }
     }
 

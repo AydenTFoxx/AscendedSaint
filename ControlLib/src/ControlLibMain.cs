@@ -15,7 +15,7 @@ public class ControlLibMain : BaseUnityPlugin
 {
     public const string PLUGIN_NAME = "ControlLib";
     public const string PLUGIN_GUID = "ynhzrfxn.controllib";
-    public const string PLUGIN_VERSION = "0.4.1";
+    public const string PLUGIN_VERSION = "0.4.2";
 
     private bool isInitialized;
     private readonly CLOptions options;
@@ -33,7 +33,7 @@ public class ControlLibMain : BaseUnityPlugin
         if (isInitialized) return;
         isInitialized = true;
 
-        CLLogger.LogDebug("Started initialization process.");
+        CLLogger.LogMessage("Started initialization process.");
 
         CompatibilityManager.CheckModCompats();
 
@@ -49,7 +49,7 @@ public class ControlLibMain : BaseUnityPlugin
         if (!isInitialized) return;
         isInitialized = false;
 
-        CLLogger.LogDebug("Started deactivation process.");
+        CLLogger.LogMessage("Started deactivation process.");
 
         RemoveCLHooks();
 
@@ -106,7 +106,7 @@ public class ControlLibMain : BaseUnityPlugin
         }
         else
         {
-            CLLogger.LogDebug($"{self.game.FirstRealizedPlayer} is already realized, ignoring.");
+            CLLogger.LogDebug($"{self.game.FirstAnyPlayer} is already present, ignoring.");
         }
     }
 

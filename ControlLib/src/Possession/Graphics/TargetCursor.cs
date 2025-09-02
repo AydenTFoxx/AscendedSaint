@@ -12,7 +12,7 @@ public class TargetCursor(PossessionManager manager)
     private float CursorSpeed =>
         CompatibilityManager.IsRainMeadowEnabled()
         && !OptionUtils.IsOptionEnabled(CLOptions.MEADOW_SLOWDOWN)
-            ? 30f
+            ? 7.5f
             : 15f;
 
     public void ResetCursor(bool isVisible = false)
