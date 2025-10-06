@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+		<TargetFramework>net481</TargetFramework>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+		<DebugType>portable</DebugType>
+		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Reference Include="../lib/*.dll">
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="../lib/**/*.dll">
+			<Private>false</Private>
+		</Reference>
+	</ItemGroup>
+
+	<Target Name="GenerateModLibrary" AfterTargets="PostBuildEvent">
+		<ItemGroup>
+			<CopyPlugins Include="$(TargetDir)$(TargetName).*" />
+		</ItemGroup>
+
+		<Copy SourceFiles="@(CopyPlugins)" DestinationFolder="../mod/newest/plugins/" />
+		<Copy SourceFiles="../lib/LogUtils.dll" DestinationFolder="../mod/newest/plugins/" />
+	</Target>
+
+</Project>
