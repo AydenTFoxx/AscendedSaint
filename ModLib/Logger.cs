@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 using System.IO;
-using System.Reflection;
+using System.Linq;
 using System.Text;
 using BepInEx.Logging;
 using UnityEngine;
@@ -12,10 +12,10 @@ namespace ModLib;
 /// <summary>
 /// A custom logger which sends messages to both the game's and this mod's log files.
 /// </summary>
-/// <remarks>The generated logs for this mod can be found at <c>"%HOMEPATH%\AppData\LocalLow\Videocult\Rain World\ModLib.log"</c></remarks>
+/// <remarks>The generated logs for this mod can be found at <c>StreamingAssets\Logs\MOD_NAME.log</c></remarks>
 public static class Logger
 {
-    private static string LogPrefix { get; } = Assembly.GetCallingAssembly().GetModName();
+    private static string LogPrefix { get; } = ModPlugin.Assembly.GetModName();
 
     private static string LogPath
     {
@@ -23,7 +23,25 @@ public static class Logger
         {
             if (string.IsNullOrEmpty(field))
             {
-                field = Path.Combine(Path.GetFullPath(Application.persistentDataPath), "ModLib.log");
+                char[] bannedChars = [.. Path.GetInvalidFileNameChars(), ' '];
+                StringBuilder stringBuilder = new();
+
+                foreach (char c in $"{LogPrefix}.log")
+                {
+                    if (!bannedChars.Contains(c))
+                    {
+                        stringBuilder.Append(c);
+                    }
+                }
+
+                string logsFolder = Path.Combine(Path.GetFullPath(Application.streamingAssetsPath), "Logs");
+
+                if (!Directory.Exists(logsFolder))
+                {
+                    Directory.CreateDirectory(logsFolder);
+                }
+
+                field = Path.Combine(logsFolder, stringBuilder.ToString());
             }
 
             return field;

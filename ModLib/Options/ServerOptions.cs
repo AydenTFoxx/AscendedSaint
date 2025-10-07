@@ -12,12 +12,12 @@ public class ServerOptions
 
     public void RefreshOptions(bool isOnline = false)
     {
-        foreach (FieldInfo field in Assembly.GetCallingAssembly().GetOptionHolder()?.GetFields(BindingFlags.Public | BindingFlags.Static) ?? [])
+        foreach (FieldInfo field in ModPlugin.Assembly.GetOptionHolder()?.GetFields(BindingFlags.Public | BindingFlags.Static) ?? [])
         {
             if (field.GetValue(null) is ConfigurableBase configurable
                 && Attribute.GetCustomAttribute(field, typeof(ClientOptionAttribute)) is null)
             {
-                MyOptions[configurable.key] = (int)configurable.BoxedValue;
+                MyOptions[configurable.key] = CastOptionValue(configurable.BoxedValue);
             }
         }
 
@@ -53,6 +53,19 @@ public class ServerOptions
         }
 
         return stringBuilder.ToString().Trim();
+    }
+
+    private static int CastOptionValue(object? value)
+    {
+        return value is int i
+            ? i
+            : value is bool b
+            ? b
+                ? 1
+                : 0
+            : int.TryParse(value?.ToString(), out int result)
+                ? result
+                : default;
     }
 }
 

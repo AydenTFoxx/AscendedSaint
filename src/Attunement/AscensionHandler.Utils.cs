@@ -9,10 +9,12 @@ namespace AscendedSaint.Attunement;
 
 public static partial class AscensionHandler
 {
-    public static bool CanReviveObject(PhysicalObject physicalObject) =>
-        physicalObject is Creature creature
+    public static bool CanReviveObject(PhysicalObject physicalObject)
+    {
+        return physicalObject is Creature creature
             ? creature.dead
             : physicalObject is Oracle oracle && CanReviveOracle(oracle);
+    }
 
     [SuppressMessage("Style", "IDE0046:Convert to conditional expression", Justification = "unreadable mess")]
     public static bool CanReviveOracle(Oracle oracle)

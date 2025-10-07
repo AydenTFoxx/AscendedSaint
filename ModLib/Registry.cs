@@ -19,12 +19,7 @@ public static class Registry
     ///     which are retrieved via reflection to determine the mod's REMIX options.
     /// </param>
     public static void RegisterMod(BaseUnityPlugin plugin, Type? optionHolder) =>
-        RegisterMod(plugin.Info.Metadata, optionHolder);
-
-    /// <inheritdoc cref="RegisterMod"/>
-    /// <param name="metadata">The metadata of the Plugin class for registry.</param>
-    public static void RegisterMod(BepInPlugin metadata, Type? optionHolder) =>
-        RegisteredMods.Add(Assembly.GetCallingAssembly(), new ModMetadata(metadata, optionHolder));
+        RegisteredMods.Add(Assembly.GetCallingAssembly(), new ModMetadata(plugin.Info.Metadata, optionHolder));
 
     /// <summary>
     /// Removes the current mod assembly from ModLib's registry.
@@ -59,25 +54,19 @@ public static class Registry
         public Version ModVersion { get; }
 
         public Type? OptionHolder { get; }
-        public LogUtils.Logger? Logger { get; }
 
-        public ModMetadata(BaseUnityPlugin plugin, Type? optionHolder, bool createLogger = true)
-            : this(plugin.Info.Metadata, optionHolder, createLogger)
+        public ModMetadata(BaseUnityPlugin plugin, Type? optionHolder)
+            : this(plugin.Info.Metadata, optionHolder)
         {
         }
 
-        public ModMetadata(BepInPlugin metadata, Type? optionHolder, bool createLogger = true)
+        public ModMetadata(BepInPlugin metadata, Type? optionHolder)
         {
             ModId = metadata.GUID;
             ModName = metadata.Name;
             ModVersion = metadata.Version;
 
             OptionHolder = optionHolder;
-
-            if (createLogger)
-            {
-                Logger = new();
-            }
         }
     }
 }

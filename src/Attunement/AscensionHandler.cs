@@ -22,7 +22,7 @@ public static partial class AscensionHandler
         {
             ModLib.Logger.LogInfo("Return! " + creature.Template.name);
 
-            if (IsRainMeadowEnabled())
+            if (IsRainMeadowEnabled() && MeadowUtils.IsOnline)
             {
                 MeadowHelper.TryReviveCreature(creature, () => ReviveCreature(creature, GetOptionValue(Options.REVIVAL_HEALTH_FACTOR)));
                 MeadowHelper.RequestAscensionEffectsSync(creature);
@@ -39,7 +39,7 @@ public static partial class AscensionHandler
                 SpawnAscensionEffects(creature);
             }
 
-            creature.Stun(creature is Player ? 40 : 80);
+            creature.Stun(creature is Player ? 40 : 100);
         }
         else if (creature is Player player && player == callingPlayer)
         {
@@ -47,7 +47,7 @@ public static partial class AscensionHandler
 
             creature.Die();
 
-            if (IsRainMeadowEnabled())
+            if (IsRainMeadowEnabled() && MeadowUtils.IsOnline)
             {
                 MeadowHelper.RequestAscensionEffectsSync(creature);
 
@@ -74,7 +74,7 @@ public static partial class AscensionHandler
 
         ModLib.Logger.LogInfo($"Return, Iterator! {GetOracleName(oracle.ID)}");
 
-        if (IsRainMeadowEnabled())
+        if (IsRainMeadowEnabled() && MeadowUtils.IsOnline)
         {
             MeadowHelper.TryReviveCreature(oracle, () => ReviveOracle(oracle));
             MeadowHelper.RequestAscensionEffectsSync(oracle);
@@ -101,11 +101,11 @@ public static partial class AscensionHandler
     {
         AbstractCreature abstractCreature = creature.abstractCreature;
 
-        if (abstractCreature.state is HealthState healthState)
-        {
-            healthState.alive = true;
-            healthState.health = creature is Player ? 1f : health; // Fun fact: Only Slugpups have a HealthState
-        }
+        if (abstractCreature.state is not HealthState healthState)
+            healthState = new HealthState(abstractCreature);
+
+        healthState.alive = true;
+        healthState.health = creature is Player ? 1f : health;
 
         creature.dead = false;
         creature.killTag = null;

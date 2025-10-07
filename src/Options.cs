@@ -49,8 +49,8 @@ public class Options : OptionInterface
 
         DYNAMIC_ENDINGS = config.Bind(
             "dynamic_endings",
-            true,
-            new ConfigurableInfo("Enables the mod's alternate endings for Saint."));
+            false,
+            new ConfigurableInfo("Enables the mod's alternate ending for Saint."));
     }
 
     public override void Initialize()
@@ -68,7 +68,7 @@ public class Options : OptionInterface
             .Build();
 
         Tabs[1] = new OptionBuilder(this, "Experiments", MenuColorEffect.rgbDarkRed)
-            .AddText("These options are experimental and may cause unexpected behavior. Thread with care.", new Vector2(48f, 32f), false, MenuColorEffect.rgbDarkGrey)
+            .AddText("These options are experimental and may cause unexpected behavior. Thread with care.", new Vector2(64f, 32f), false, RainWorld.GoldRGB)
             .AddPadding(Vector2.up * 24f)
             .AddCheckBoxOption("Custom Iterator Revival", CUSTOM_ORACLE_REVIVAL!)
             .AddPadding(Vector2.up * 10f)

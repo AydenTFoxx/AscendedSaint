@@ -1,5 +1,4 @@
 using System.Linq;
-using System.Reflection;
 using Menu;
 using Menu.Remix.MixedUI;
 using UnityEngine;
@@ -34,8 +33,8 @@ public class OptionBuilder
 
         opTab.AddItems(
             [
-                new OpLabel(new Vector2(200f, 520f), new Vector2(200f, 40f), Assembly.GetCallingAssembly().GetModName(), bigText: true),
-                new OpLabel(new Vector2(245f, 510f), new Vector2(200f, 15f), $"[v{Assembly.GetCallingAssembly().GetModVersion()}]")
+                new OpLabel(new Vector2(200f, 520f), new Vector2(200f, 40f), ModPlugin.Assembly.GetModName(), bigText: true),
+                new OpLabel(new Vector2(245f, 510f), new Vector2(200f, 15f), $"[v{ModPlugin.Assembly.GetModVersion()}]")
                 {
                     color = Color.gray
                 }
@@ -183,7 +182,7 @@ public class OptionBuilder
     {
         UIelement[] UIarrayOptions =
         [
-            new OpLabel(vector2 + new Vector2(140f, 10f), size, text, FLabelAlignment.Center, bigText)
+            new OpLabel(vector2 + new Vector2(100f + size.x, 10f), size, text, FLabelAlignment.Center, bigText)
             {
                 verticalAlignment = OpLabel.LabelVAlignment.Center,
                 color = GetColorOrDefault(colors, 0)

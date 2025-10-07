@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 using UnityEngine;
 using static ModLib.CompatibilityManager;
 
@@ -100,7 +99,7 @@ public static class InputHandler
 /// <param name="GamepadKey">The default key for gamepad users. Can only be edited in-game with IIC/IIC:E.</param>
 public record class Keybind(string ID, string Name, KeyCode KeyboardKey, KeyCode GamepadKey)
 {
-    public string ID { get; } = $"{Assembly.GetCallingAssembly().GetModName()}:{ID}";
+    public string ID { get; } = $"{ModPlugin.Assembly.GetModName()}:{ID}";
     public string Name { get; } = Name;
     public KeyCode KeyboardKey { get; } = KeyboardKey;
     public KeyCode GamepadKey { get; } = GamepadKey;

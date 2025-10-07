@@ -1,4 +1,5 @@
 ﻿using AscendedSaint.Attunement;
+//using AscendedSaint.Endings;
 using BepInEx;
 using ModLib;
 
@@ -25,19 +26,23 @@ public class Main : ModPlugin
     {
         base.ApplyHooks();
 
-        IL.Player.ClassMechanicsSaint += Extras.WrapILHook(SaintMechanicsHooks.AscensionMechanicsILHook);
+        SaintMechanicsHooks.AddHooks();
+
+        //VoidSeaHooks.AddHooks();
     }
 
     protected override void RemoveHooks()
     {
         base.RemoveHooks();
 
-        IL.Player.ClassMechanicsSaint -= Extras.WrapILHook(SaintMechanicsHooks.AscensionMechanicsILHook);
+        SaintMechanicsHooks.RemoveHooks();
+
+        //VoidSeaHooks.RemoveHooks();
     }
 
-    protected override void UpdateHook(On.RainWorld.orig_Update orig, RainWorld self)
+    protected override void GameUpdateHook(On.RainWorldGame.orig_Update orig, RainWorldGame self)
     {
-        base.UpdateHook(orig, self);
+        base.GameUpdateHook(orig, self);
 
         SaintMechanicsHooks.UpdateCooldowns();
     }

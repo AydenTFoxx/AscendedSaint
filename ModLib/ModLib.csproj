@@ -6,6 +6,7 @@
 		<Nullable>enable</Nullable>
 		<DebugType>portable</DebugType>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -23,7 +24,6 @@
 		</ItemGroup>
 
 		<Copy SourceFiles="@(CopyPlugins)" DestinationFolder="../mod/newest/plugins/" />
-		<Copy SourceFiles="../lib/LogUtils.dll" DestinationFolder="../mod/newest/plugins/" />
 	</Target>
 
 </Project>
