@@ -29,7 +29,7 @@ public static partial class AscensionHandler
 
                 if (callingPlayer is not null)
                 {
-                    MeadowUtils.LogSystemMessage($"{(creature is Player player ? OnlineQueries.GetPlayerName(player) : creature.Template.name)} was revived by {OnlineQueries.GetPlayerName(callingPlayer)}.");
+                    MeadowUtils.LogSystemMessage($"{(creature is Player player ? OnlineQueries.GetOnlineName(player) : creature.Template.name)} was revived by {OnlineQueries.GetOnlineName(callingPlayer)}.");
                 }
             }
             else
@@ -51,7 +51,7 @@ public static partial class AscensionHandler
             {
                 MeadowHelper.RequestAscensionEffectsSync(creature);
 
-                MeadowUtils.LogSystemMessage($"{OnlineQueries.GetPlayerName(player)} self-ascended.");
+                MeadowUtils.LogSystemMessage($"{OnlineQueries.GetOnlineName(player)} self-ascended.");
             }
             else
             {
@@ -79,7 +79,7 @@ public static partial class AscensionHandler
             MeadowHelper.TryReviveCreature(oracle, () => ReviveOracle(oracle));
             MeadowHelper.RequestAscensionEffectsSync(oracle);
 
-            MeadowUtils.LogSystemMessage($"{GetOracleName(oracle.ID)} was revived by {OnlineQueries.GetPlayerName(callingPlayer)}.");
+            MeadowUtils.LogSystemMessage($"{GetOracleName(oracle.ID)} was revived by {OnlineQueries.GetOnlineName(callingPlayer)}.");
         }
         else
         {

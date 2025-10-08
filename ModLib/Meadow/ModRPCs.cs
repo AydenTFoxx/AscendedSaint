@@ -26,7 +26,7 @@ public static class ModRPCs
 
         Logger.LogInfo($"Syncing REMIX options with player {onlinePlayer}...");
 
-        onlinePlayer.SendRPCEvent(SyncRemixOptions, new OnlineServerOptions(SharedOptions));
+        onlinePlayer.SendRPCEvent(SyncRemixOptions, new OnlineServerOptions() { MyOptions = SharedOptions.MyOptions });
     }
 
     [SoftRPCMethod]

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using ModLib;
 using ModLib.Generics;
 using ModLib.Options;
 using Mono.Cecil.Cil;
@@ -61,12 +62,12 @@ public static class SaintMechanicsHooks
 
     public static void AddHooks()
     {
-        IL.Player.ClassMechanicsSaint += AscensionMechanicsILHook;
+        IL.Player.ClassMechanicsSaint += Extras.WrapILHook(AscensionMechanicsILHook);
     }
 
     public static void RemoveHooks()
     {
-        IL.Player.ClassMechanicsSaint -= AscensionMechanicsILHook;
+        IL.Player.ClassMechanicsSaint -= Extras.WrapILHook(AscensionMechanicsILHook);
     }
 
     /// <summary>

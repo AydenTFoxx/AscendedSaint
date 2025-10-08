@@ -1,5 +1,5 @@
 ﻿using AscendedSaint.Attunement;
-//using AscendedSaint.Endings;
+using AscendedSaint.Endings;
 using BepInEx;
 using ModLib;
 
@@ -28,7 +28,7 @@ public class Main : ModPlugin
 
         SaintMechanicsHooks.AddHooks();
 
-        //VoidSeaHooks.AddHooks();
+        VoidSeaHooks.AddHooks();
     }
 
     protected override void RemoveHooks()
@@ -37,7 +37,7 @@ public class Main : ModPlugin
 
         SaintMechanicsHooks.RemoveHooks();
 
-        //VoidSeaHooks.RemoveHooks();
+        VoidSeaHooks.RemoveHooks();
     }
 
     protected override void GameUpdateHook(On.RainWorldGame.orig_Update orig, RainWorldGame self)

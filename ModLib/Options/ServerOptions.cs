@@ -60,12 +60,12 @@ public class ServerOptions
         return value is int i
             ? i
             : value is bool b
-            ? b
-                ? 1
-                : 0
-            : int.TryParse(value?.ToString(), out int result)
-                ? result
-                : default;
+                ? b
+                    ? 1
+                    : 0
+                : int.TryParse(value?.ToString(), out int result)
+                    ? result
+                    : default;
     }
 }
 

@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using BepInEx.Logging;
 using UnityEngine;
-using static ModLib.CompatibilityManager;
 
 namespace ModLib;
 
@@ -130,13 +129,6 @@ public static class Logger
         $"{message}{Environment.NewLine}-- Stack trace:{Environment.NewLine}{Environment.StackTrace}";
 
     /// <summary>
-    /// Formats and returns the prefix to be used in logs.
-    /// </summary>
-    /// <returns>A new <c>String</c> object with the formatted prefix for usage.</returns>
-    /// <remarks>If a mod with special compatibility support is detected, a suffix is also added to the acronym itself.</remarks>
-    private static string BuildLogPrefix() => LogPrefix + (IsRainMeadowEnabled() ? "+M" : "");
-
-    /// <summary>
     /// Obtains and formats the current time when the log was created.
     /// </summary>
     /// <returns>The formatted time of when the function was called.</returns>
@@ -150,7 +142,7 @@ public static class Logger
     /// <param name="addNewLine">Whether to add a newline character at the end of the formatted string.</param>
     /// <returns>A new formatted <c>String</c> object ready to be logged.</returns>
     private static string FormatMessage(object message, LogLevel logLevel, bool addNewLine = true, bool addDateTime = true) =>
-        $"{(addDateTime ? GetDateTime() : "")} [{BuildLogPrefix()}: {logLevel}] {message}".Trim() + (addNewLine ? Environment.NewLine : "");
+        $"{(addDateTime ? GetDateTime() : "")} [{LogPrefix}: {logLevel}] {message}".Trim() + (addNewLine ? Environment.NewLine : "");
 
     private static string FormatErrorMessage(object message, Exception exception)
     {

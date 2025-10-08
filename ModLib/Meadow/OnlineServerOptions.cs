@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using ModLib.Options;
 using RainMeadow;
 
@@ -8,16 +9,25 @@ namespace ModLib.Meadow;
 /// </summary>
 public class OnlineServerOptions : ServerOptions, Serializer.ICustomSerializable
 {
-    public OnlineServerOptions(ServerOptions source)
-    {
-        SetOptions(source);
-    }
-
     public OnlineServerOptions()
     {
     }
 
-    public void CustomSerialize(Serializer serializer) => serializer.Serialize(ref MyOptions);
+    public void CustomSerialize(Serializer serializer)
+    {
+        Logger.LogDebug($"Serializing {this} : Reading? {serializer.IsReading} | Writing? {serializer.IsWriting} (IsDelta? {serializer.IsDelta})");
 
-    public override string ToString() => $"{nameof(OnlineServerOptions)} => {FormatOptions()}";
+        Dictionary<string, int> data = [];
+
+        if (serializer.IsWriting)
+        {
+            data = MyOptions;
+        }
+
+        serializer.Serialize(ref data);
+
+        MyOptions = data;
+
+        Logger.LogDebug($"Resulting data: {this}");
+    }
 }
