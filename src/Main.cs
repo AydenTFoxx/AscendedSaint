@@ -1,7 +1,14 @@
-﻿using AscendedSaint.Attunement;
-using AscendedSaint.Endings;
+﻿using System.Security.Permissions;
+using AscendedSaint.Attunement;
+using AscendedSaint.Meadow;
 using BepInEx;
 using ModLib;
+
+// Allows access to private members
+#pragma warning disable CS0618
+[assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
+#pragma warning restore CS0618
+
 
 namespace AscendedSaint;
 
@@ -22,13 +29,27 @@ public class Main : ModPlugin
         ModLib.Logger.CleanLogFile();
     }
 
+    public override void OnEnable()
+    {
+        base.OnEnable();
+
+        AscensionHandler.AscensionImpl = IsMeadowEnabled
+            ? new MeadowAscensionImpl()
+            : new VanillaAscensionImpl();
+    }
+
+    public override void OnDisable()
+    {
+        base.OnDisable();
+
+        AscensionHandler.AscensionImpl = null;
+    }
+
     protected override void ApplyHooks()
     {
         base.ApplyHooks();
 
         SaintMechanicsHooks.AddHooks();
-
-        VoidSeaHooks.AddHooks();
     }
 
     protected override void RemoveHooks()
@@ -36,14 +57,12 @@ public class Main : ModPlugin
         base.RemoveHooks();
 
         SaintMechanicsHooks.RemoveHooks();
-
-        VoidSeaHooks.RemoveHooks();
     }
 
     protected override void GameUpdateHook(On.RainWorldGame.orig_Update orig, RainWorldGame self)
     {
         base.GameUpdateHook(orig, self);
 
-        SaintMechanicsHooks.UpdateCooldowns();
+        AscensionHandler.UpdateCooldowns();
     }
 }

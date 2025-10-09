@@ -24,17 +24,21 @@ public class ServerOptions
         Logger.LogDebug($"{(isOnline ? "Online " : "")}REMIX options are: {this}");
     }
 
-    public void SetOptions(ServerOptions? options)
+    public void SetOptions(ServerOptions source) => SetOptions(source.MyOptions);
+
+    public void SetOptions(Dictionary<string, int> options)
     {
-        Dictionary<string, int> newOptions = options?.MyOptions ?? [];
-
-        foreach (string key in MyOptions.Keys)
+        foreach (KeyValuePair<string, int> pair in options)
         {
-            int newValue = newOptions.TryGetValue(key, out int value) ? value : new();
+            if (!MyOptions.TryGetValue(pair.Key, out _))
+            {
+                Logger.LogWarning($"{nameof(MyOptions)} does not have option \"{pair.Key}\", will not be synced.");
+                continue;
+            }
 
-            Logger.LogDebug($"Setting key {MyOptions[key]} to {newValue}.");
+            Logger.LogDebug($"Setting key {pair.Key} to {pair.Value}.");
 
-            MyOptions[key] = newValue;
+            MyOptions[pair.Key] = pair.Value;
         }
     }
 

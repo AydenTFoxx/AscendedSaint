@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using ModLib.Options;
 using RainMeadow;
 
@@ -15,18 +14,9 @@ public class OnlineServerOptions : ServerOptions, Serializer.ICustomSerializable
 
     public void CustomSerialize(Serializer serializer)
     {
-        Logger.LogDebug($"Serializing {this} : Reading? {serializer.IsReading} | Writing? {serializer.IsWriting} (IsDelta? {serializer.IsDelta})");
+        Logger.LogDebug($"Serializing {this} : Reading? {serializer.IsReading} | Writing? {serializer.IsWriting}");
 
-        Dictionary<string, int> data = [];
-
-        if (serializer.IsWriting)
-        {
-            data = MyOptions;
-        }
-
-        serializer.Serialize(ref data);
-
-        MyOptions = data;
+        serializer.Serialize(ref MyOptions);
 
         Logger.LogDebug($"Resulting data: {this}");
     }

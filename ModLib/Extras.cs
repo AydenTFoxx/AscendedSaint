@@ -67,7 +67,7 @@ public static class Extras
         }
         else
         {
-            // Likely a Jolly Co-op session or similar; No need to sync again.
+            // In a multiplayer context; No need to refresh local options again.
             Logger.LogDebug($"{self.game.FirstAnyPlayer} is already present, ignoring.");
         }
     }
@@ -79,11 +79,9 @@ public static class Extras
     {
         orig.Invoke(self, game);
 
-        if (CompatibilityManager.IsRainMeadowEnabled() && !MeadowUtils.IsHost)
+        if (CompatibilityManager.IsRainMeadowEnabled() && MeadowUtils.IsHost)
         {
-            OptionUtils.SharedOptions.SetOptions(null);
-
-            MeadowUtils.RequestOptionsSync();
+            MeadowUtils.InitOptionsSync();
         }
     }
 }

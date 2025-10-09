@@ -1,4 +1,5 @@
 using System;
+using ModLib.Options;
 using RainMeadow;
 
 namespace ModLib.Meadow;
@@ -9,6 +10,32 @@ public static class MeadowUtils
     public static bool IsHost => !IsOnline || OnlineManager.lobby.isOwner;
 
     /// <summary>
+    /// Obtains the online name of the given player.
+    /// </summary>
+    /// <param name="self">The player to be queried.</param>
+    /// <returns>A <c>String</c> containing the player's name, or <c>null</c> if none is found.</returns>
+    public static string? GetOnlineName(this Player self)
+    {
+        OnlinePhysicalObject? playerOPO = self.abstractPhysicalObject.GetOnlineObject();
+
+        if (playerOPO is null)
+        {
+            Logger.LogWarning("Failed to retrieve the OnlinePhysicalObject representation of the player, aborting.");
+            return null;
+        }
+
+        foreach (OnlinePlayer onlinePlayer in OnlineManager.players)
+        {
+            if (playerOPO.owner == onlinePlayer)
+                return onlinePlayer.id.GetPersonaName();
+        }
+
+        Logger.LogWarning($"Failed to retrieve the OnlinePlayer instance of {self}!");
+
+        return null;
+    }
+
+    /// <summary>
     /// Logs a message to Rain Meadow's chat (as the system) and to this mod's log file.
     /// </summary>
     /// <param name="message">The message to be sent to all players.</param>
@@ -17,6 +44,18 @@ public static class MeadowUtils
         ChatLogManager.LogSystemMessage(message);
 
         Logger.LogMessage($"-> {message}");
+    }
+
+    public static void InitOptionsSync()
+    {
+        if (!IsOnline || !IsHost) return;
+
+        foreach (OnlinePlayer onlinePlayer in OnlineManager.lobby.participants)
+        {
+            if (onlinePlayer.isMe) continue;
+
+            onlinePlayer.SendRPCEvent(ModRPCs.SyncRemixOptions, new OnlineServerOptions() { MyOptions = OptionUtils.SharedOptions.MyOptions });
+        }
     }
 
     public static bool IsGameMode(MeadowGameModes gameMode)
@@ -34,24 +73,15 @@ public static class MeadowUtils
         return gamemode == (int)gameMode;
     }
 
-    public static bool IsMine(PhysicalObject physicalObject) => physicalObject.IsLocal();
+    public static void RequestOwnership(PhysicalObject physicalObject) =>
+        RequestOwnership(physicalObject.abstractPhysicalObject.GetOnlineObject(), null);
 
-    public static void RequestOptionsSync()
-    {
-        if (!IsOnline || IsHost) return;
-
-        OnlineManager.lobby.owner.SendRPCEvent(ModRPCs.RequestRemixOptionsSync, OnlineManager.mePlayer);
-    }
-
-    public static bool RequestOwnership(PhysicalObject physicalObject) =>
-        RequestOwnership(physicalObject.abstractPhysicalObject.GetOnlineObject());
-
-    public static bool RequestOwnership(OnlinePhysicalObject? onlineObject)
+    public static void RequestOwnership(OnlinePhysicalObject? onlineObject, Action<GenericResult>? callback = null)
     {
         if (onlineObject is null)
         {
             Logger.LogWarning($"Cannot request the ownership of a null object; Aborting operation.");
-            return false;
+            return;
         }
 
         try
@@ -60,14 +90,14 @@ public static class MeadowUtils
 
             onlineObject.Request();
 
-            Logger.LogDebug($"New owner is: {onlineObject.owner}");
+            (onlineObject.pendingRequest as RPCEvent)?.Then(callback ?? DefaultCallback);
         }
         catch (Exception ex)
         {
             Logger.LogError($"Failed to request ownership of {onlineObject}!", ex);
         }
 
-        return onlineObject.isMine;
+        void DefaultCallback(GenericResult result) => Logger.LogDebug($"Request successful? {result is GenericResult.Ok} | Do I own the object? {onlineObject.isMine}");
     }
 
     public enum MeadowGameModes

@@ -9,27 +9,6 @@ namespace ModLib.Meadow;
 public static class ModRPCs
 {
     [SoftRPCMethod]
-    public static void RequestRemixOptionsSync(RPCEvent rpcEvent, OnlinePlayer onlinePlayer)
-    {
-        if (!MeadowUtils.IsHost)
-        {
-            Logger.LogWarning("Player is not host; Cannot sync options with other players!");
-
-            rpcEvent.Resolve(new GenericResult.Fail(rpcEvent));
-            return;
-        }
-
-        if (SharedOptions.MyOptions.Count < 1)
-        {
-            SharedOptions.RefreshOptions(true);
-        }
-
-        Logger.LogInfo($"Syncing REMIX options with player {onlinePlayer}...");
-
-        onlinePlayer.SendRPCEvent(SyncRemixOptions, new OnlineServerOptions() { MyOptions = SharedOptions.MyOptions });
-    }
-
-    [SoftRPCMethod]
     public static void SyncRemixOptions(RPCEvent rpcEvent, OnlineServerOptions options)
     {
         if (MeadowUtils.IsHost)
@@ -39,6 +18,8 @@ public static class ModRPCs
             rpcEvent.Resolve(new GenericResult.Fail(rpcEvent));
             return;
         }
+
+        Logger.LogDebug($"Received data: {options}");
 
         SharedOptions.SetOptions(options);
 

@@ -70,18 +70,30 @@ public static class ModRPCManager
         return rpcEvent;
     }
 
+    public static void BroadcastOnceRPCInRoom(this OnlineEntity source, Delegate del, params object[] args)
+    {
+        if (source.currentlyJoinedResource is not RoomSession roomSession) return;
+
+        foreach (OnlinePlayer participant in roomSession.participants)
+        {
+            if (participant.isMe) continue;
+
+            participant.SendRPCEvent(del, args);
+        }
+    }
+
     public static void ResolveRPCEvent(GenericResult result)
     {
         switch (result)
         {
             case GenericResult.Ok:
-                Logger.LogInfo($"Successfully delivered RPC {result.referencedEvent} to {result.to}.");
+                Logger.LogInfo($"Successfully delivered RPC {result.referencedEvent} to {result.from}.");
                 break;
             case GenericResult.Fail:
-                Logger.LogWarning($"Could not run RPC {result.referencedEvent} as {result.to}.");
+                Logger.LogWarning($"Could not run RPC {result.referencedEvent} as {result.from}.");
                 break;
             default:
-                Logger.LogWarning($"Failed to deliver RPC {result.referencedEvent} to {result.to}!");
+                Logger.LogWarning($"Failed to deliver RPC {result.referencedEvent} to {result.from}!");
                 break;
         }
 
