@@ -7,7 +7,7 @@ using UnityEngine;
 namespace ModLib;
 
 /// <summary>
-/// Simple helper for determining the presence of other mods and ensure mod compatibility.
+///     Simple helper for determining the presence of other mods and ensure mod compatibility.
 /// </summary>
 public static class CompatibilityManager
 {
@@ -18,7 +18,7 @@ public static class CompatibilityManager
     private static Dictionary<string, bool> ManagedMods { get; } = [];
 
     /// <summary>
-    /// Queries the client's list of enabled mods for toggling compatibility features.
+    ///     Queries the client's list of enabled mods for toggling compatibility features.
     /// </summary>
     public static void CheckModCompats()
     {
@@ -55,7 +55,7 @@ public static class CompatibilityManager
     }
 
     /// <summary>
-    /// Determines if a given mod is currently enabled.
+    ///     Determines if a given mod is currently enabled.
     /// </summary>
     /// <param name="modID">The ID of the mod to check for.</param>
     /// <returns><c>true</c> if the given mod was found to be enabled, <c>false</c> otherwise.</returns>
@@ -65,19 +65,19 @@ public static class CompatibilityManager
             : ModManager.ActiveMods.Any(mod => mod.id == modID);
 
     /// <summary>
-    /// Determines if either Improved Input Config or Improved Input Config: Extended are enabled.
+    ///     Determines if either Improved Input Config or Improved Input Config: Extended are enabled.
     /// </summary>
     /// <returns><c>true</c> if one of these mods is enabled, <c>false</c> otherwise.</returns>
     public static bool IsIICEnabled() => IsModEnabled("improved-input-config");
 
     /// <summary>
-    /// Determines if the Rain Meadow mod is enabled.
+    ///     Determines if the Rain Meadow mod is enabled.
     /// </summary>
     /// <returns><c>true</c> if the mod is enabled, <c>false</c> otherwise.</returns>
     public static bool IsRainMeadowEnabled() => IsModEnabled("henpemaz_rainmeadow");
 
     /// <summary>
-    /// Overrides the configured compatibility features for a given mod.
+    ///     Overrides the configured compatibility features for a given mod.
     /// </summary>
     /// <param name="modID">The identifier of the mod.</param>
     /// <param name="enable">Whether or not compatibility with the given mod should be enabled.</param>

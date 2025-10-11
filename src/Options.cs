@@ -15,10 +15,9 @@ public class Options : OptionInterface
     public static Configurable<bool>? ALLOW_REVIVAL;
     public static Configurable<bool>? REQUIRE_KARMA_FLOWER;
     public static Configurable<int>? REVIVAL_HEALTH_FACTOR;
-    public static Configurable<bool>? CUSTOM_ORACLE_REVIVAL;
 
-    [ClientOption]
-    public static Configurable<bool>? DYNAMIC_ENDINGS;
+    public static Configurable<bool>? CUSTOM_ORACLE_REVIVAL;
+    public static Configurable<int>? REVIVAL_STUN_DURATION;
 
     public Options()
     {
@@ -40,17 +39,21 @@ public class Options : OptionInterface
         REVIVAL_HEALTH_FACTOR = config.Bind(
             "revival_health_factor",
             50,
-            new ConfigurableInfo("How much of a creature's health will be restored upon revival. For Slugcats, this is always 100."));
+            new ConfigurableInfo("How much of a creature's health will be restored upon revival. For slugcats, this is always 100."));
 
         CUSTOM_ORACLE_REVIVAL = config.Bind(
             "custom_oracle_revival",
             false,
-            new ConfigurableInfo("If enabled, Iterators other than FP and LttM can revived. Untested and prone to bugs."));
+            new ConfigurableInfo("If enabled, iterators other than FP and LttM can revived. Untested and prone to bugs."));
 
-        DYNAMIC_ENDINGS = config.Bind(
-            "dynamic_endings",
-            false,
-            new ConfigurableInfo("Enables the mod's alternate ending for Saint."));
+        REVIVAL_STUN_DURATION = config.Bind(
+            "revival_stun_duration",
+            100,
+            new ConfigurableInfo(
+                "How long a creature will be stunned for after being revived. For slugcats and iterators, this value is halved.",
+                new ConfigAcceptableRange<int>(0, 200)
+            )
+        );
     }
 
     public override void Initialize()
@@ -68,11 +71,11 @@ public class Options : OptionInterface
             .Build();
 
         Tabs[1] = new OptionBuilder(this, "Experiments", MenuColorEffect.rgbDarkRed)
-            .AddText("These options are experimental and may cause unexpected behavior. Thread with care.", new Vector2(64f, 32f), false, RainWorld.GoldRGB)
+            .AddText("These options are experimental and may cause unexpected behavior. Thread with care.", new Vector2(64f, 32f), false, RainWorld.SaturatedGold)
             .AddPadding(Vector2.up * 24f)
             .AddCheckBoxOption("Custom Iterator Revival", CUSTOM_ORACLE_REVIVAL!)
             .AddPadding(Vector2.up * 10f)
-            .AddCheckBoxOption("Enable Dynamic Endings", DYNAMIC_ENDINGS!)
+            .AddSliderOption("Revival Stun Duration", REVIVAL_STUN_DURATION!, 1f)
             .Build();
     }
 }

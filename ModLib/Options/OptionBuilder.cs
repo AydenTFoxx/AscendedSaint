@@ -36,7 +36,7 @@ public class OptionBuilder
                 new OpLabel(new Vector2(200f, 520f), new Vector2(200f, 40f), ModPlugin.Assembly.GetModName(), bigText: true),
                 new OpLabel(new Vector2(245f, 510f), new Vector2(200f, 15f), $"[v{ModPlugin.Assembly.GetModVersion()}]")
                 {
-                    color = Color.gray
+                    color = GetColorOrDefault(colors, 2, Color.gray)
                 }
             ]
         );
@@ -89,6 +89,7 @@ public class OptionBuilder
     /// </summary>
     /// <param name="text">The combo box's label. Will be displayed right after the box itself.</param>
     /// <param name="configurable">The <c>Configurable</c> this combo box will be bound to.</param>
+    /// <param name="width">The width of the combo box element.</param>
     /// <param name="colors">
     ///     The color values to be used by the <c>OpLabel</c> and <c>OpComboBox</c> instance.
     ///     Colors are retrieved by index and applied to relevant fields in alphabetical order.
@@ -178,14 +179,14 @@ public class OptionBuilder
     /// <param name="bigText">If this text should be rendered larger than usual.</param>
     /// <param name="color">The color of the text.</param>
     /// <returns>The <c>OptionBuilder</c> object.</returns>
-    public OptionBuilder AddText(string text, Vector2 size, bool bigText = false, params Color[] colors)
+    public OptionBuilder AddText(string text, Vector2 size, bool bigText = false, Color? color = default)
     {
         UIelement[] UIarrayOptions =
         [
             new OpLabel(vector2 + new Vector2(100f + size.x, 10f), size, text, FLabelAlignment.Center, bigText)
             {
                 verticalAlignment = OpLabel.LabelVAlignment.Center,
-                color = GetColorOrDefault(colors, 0)
+                color = color ?? MenuColorEffect.rgbMediumGrey
             }
         ];
 

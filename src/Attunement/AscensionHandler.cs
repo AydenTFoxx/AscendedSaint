@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using AscendedSaint.Features;
 using ModLib.Generics;
 using UnityEngine;
 
@@ -22,39 +21,44 @@ public static class AscensionHandler
     private static void SetAscensionCooldown(this PhysicalObject self, float duration) =>
         _ascensionCooldowns.Add(self, new AscensionCooldown(duration));
 
-    public static void AscendObject(PhysicalObject physicalObject, Player caller)
+    /// <summary>
+    /// Attempts to ascend the given object using the current ascension implementation.
+    /// </summary>
+    /// <param name="physicalObject">The object to be ascended or revived.</param>
+    /// <param name="caller">The player who caused this action.</param>
+    /// <returns><c>true</c> if the creature was successfully ascended, <c>false</c> otherwise.</returns>
+    public static bool TryAscendObject(PhysicalObject physicalObject, Player caller)
     {
-        if (AscensionImpl is null || physicalObject.HasAscensionCooldown()) return;
+        if (AscensionImpl is null || physicalObject.HasAscensionCooldown()) return false;
+
+        bool result;
 
         if (physicalObject is Creature creature)
         {
-            AscensionImpl.AscendCreature(creature, caller);
+            result = AscensionImpl.TryAscendCreature(creature, caller);
         }
         else if (physicalObject is Oracle oracle)
         {
-            AscensionImpl.AscendOracle(oracle, caller);
+            result = AscensionImpl.TryAscendOracle(oracle, caller);
         }
         else
         {
             ModLib.Logger.LogWarning($"{physicalObject} is not a valid ascension target.");
-            return;
+            return false;
         }
 
         physicalObject.SetAscensionCooldown(defaultCooldown);
-    }
 
-    public static bool CanReviveObject(PhysicalObject physicalObject) =>
-        physicalObject is Creature creature
-            ? creature.dead
-            : physicalObject is Oracle oracle && RevivalFeature.CanReviveOracle(oracle);
+        return result;
+    }
 
     /// <summary>
     /// Attempts to obtain the Karma Flower held by the player.
     /// </summary>
     /// <param name="player">The player to be tested.</param>
     /// <returns>A Karma Flower held by the player, or <c>null</c> if none is found.</returns>
-    public static PhysicalObject? GetHeldKarmaFlower(Player player) =>
-        player.grasps.FirstOrDefault(grasp => grasp?.grabbed is KarmaFlower)?.grabbed;
+    public static KarmaFlower? GetHeldKarmaFlower(Player player) =>
+        player.grasps.FirstOrDefault(grasp => grasp?.grabbed is KarmaFlower)?.grabbed as KarmaFlower;
 
     /// <summary>
     /// Spawns the special effects of Saint's new abilities.

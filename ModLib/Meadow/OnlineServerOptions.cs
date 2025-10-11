@@ -8,10 +8,10 @@ namespace ModLib.Meadow;
 /// </summary>
 public class OnlineServerOptions : ServerOptions, Serializer.ICustomSerializable
 {
-    public OnlineServerOptions()
-    {
-    }
-
+    /// <summary>
+    ///     Serializes and de-serializes this object's <see cref="ServerOptions.MyOptions"/> value.
+    /// </summary>
+    /// <param name="serializer">The serializer used for operations.</param>
     public void CustomSerialize(Serializer serializer)
     {
         Logger.LogDebug($"Serializing {this} : Reading? {serializer.IsReading} | Writing? {serializer.IsWriting}");

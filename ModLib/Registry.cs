@@ -5,13 +5,16 @@ using BepInEx;
 
 namespace ModLib;
 
+/// <summary>
+///     The entrypoint for registering mods to ModLib.
+/// </summary>
 public static class Registry
 {
     private static readonly Dictionary<Assembly, ModMetadata> RegisteredMods = [];
 
     /// <summary>
-    /// Registers the current mod assembly to ModLib. This should be done sometime during the mod-loading process,
-    /// typically from the <c>Main</c>/<c>Plugin</c> class constructor, <c>Awake()</c> or <c>OnEnable()</c> methods.
+    ///     Registers the current mod assembly to ModLib. This should be done sometime during the mod-loading process,
+    ///     typically from the <c>Main</c>/<c>Plugin</c> class constructor, <c>Awake()</c> or <c>OnEnable()</c> methods.
     /// </summary>
     /// <param name="plugin">The <c>Plugin</c> class from which this mod is being registered.</param>
     /// <param name="optionHolder">
@@ -26,7 +29,7 @@ public static class Registry
     }
 
     /// <summary>
-    /// Removes the current mod assembly from ModLib's registry.
+    ///     Removes the current mod assembly from ModLib's registry.
     /// </summary>
     /// <returns><c>true</c> if the mod was successfully unregistered, <c>false</c> otherwise (e.g. if it was not registered at all).</returns>
     public static bool UnregisterMod()

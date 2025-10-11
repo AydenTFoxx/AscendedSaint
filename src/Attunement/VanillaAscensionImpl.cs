@@ -1,17 +1,23 @@
 using AscendedSaint.Features;
-using ModLib.Options;
 
 namespace AscendedSaint.Attunement;
 
 public class VanillaAscensionImpl : IAscensionImpl
 {
-    public void AscendCreature(Creature target, Player caller)
+    public bool TryAscendCreature(Creature target, Player caller)
     {
+        bool result = true;
+
         if (target.dead)
         {
-            RevivalFeature.ReviveCreature(target, OptionUtils.GetOptionValue(Options.REVIVAL_HEALTH_FACTOR));
+            result = RevivalFeature.ReviveCreature(target);
 
-            SpawnAscensionEffects(target, true);
+            if (result)
+            {
+                SpawnAscensionEffects(target, true);
+
+                RemoveFromRespawnsList(target);
+            }
         }
         else if (target == caller)
         {
@@ -21,23 +27,25 @@ public class VanillaAscensionImpl : IAscensionImpl
         }
         else
         {
-            ModLib.Logger.LogWarning($"Could not ascend or revive creature: {target}");
+            result = false;
         }
+
+        return result;
     }
 
-    public void AscendOracle(Oracle target, Player caller)
+    public bool TryAscendOracle(Oracle target, Player caller)
     {
-        if (!RevivalFeature.CanReviveOracle(target))
-        {
-            ModLib.Logger.LogWarning($"Cannot revive oracle {RevivalFeature.GetOracleName(target.ID)}!");
-            return;
-        }
+        bool result = RevivalFeature.ReviveOracle(target);
 
-        RevivalFeature.ReviveOracle(target);
+        if (result)
+            SpawnAscensionEffects(target, true);
 
-        SpawnAscensionEffects(target, true);
+        return result;
     }
 
     public void SpawnAscensionEffects(PhysicalObject target, bool isRevival) =>
         AscensionHandler.SpawnAscensionEffects(target, isRevival);
+
+    public void RemoveFromRespawnsList(Creature creature) =>
+        RevivalFeature.RemoveFromRespawnsList(creature);
 }

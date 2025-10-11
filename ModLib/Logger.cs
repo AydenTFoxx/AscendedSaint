@@ -59,6 +59,7 @@ public static class Logger
     /// <param name="logLevel">The "importance level" of this log.</param>
     /// <param name="message">The message to be written.</param>
     /// <param name="useUnityLogger">If a copy of this message should be sent to the game's own logger.</param>
+    /// <param name="traceLogs">If the stack trace of the called log method should be added at the end of the log.</param>
     /// <remarks>Note: This function has several specialized variants for ease of use, see below.</remarks>
     public static void Log(LogLevel logLevel, object message, bool useUnityLogger = true, bool traceLogs = false)
     {
@@ -105,6 +106,7 @@ public static class Logger
     /// Logs an <c>Error</c>-level message to the game and this mod's loggers. Unlike other functions, this is not sent to the game's logs.
     /// </summary>
     /// <param name="message">The message to be written.</param>
+    /// <param name="exception">The exception to be logged.</param>
     /// <seealso cref="Log"/>
     /// <remarks>
     ///     Note: This uses a custom format for including exception and stack trace, and should be preferred when handling errors.
@@ -140,6 +142,7 @@ public static class Logger
     /// <param name="message">The message to be formatted.</param>
     /// <param name="logLevel">The log level of this message.</param>
     /// <param name="addNewLine">Whether to add a newline character at the end of the formatted string.</param>
+    /// <param name="addDateTime">Whether to add the current date and time at the start of the formatted string.</param>
     /// <returns>A new formatted <c>String</c> object ready to be logged.</returns>
     private static string FormatMessage(object message, LogLevel logLevel, bool addNewLine = true, bool addDateTime = true) =>
         $"{(addDateTime ? GetDateTime() : "")} [{LogPrefix}: {logLevel}] {message}".Trim() + (addNewLine ? Environment.NewLine : "");

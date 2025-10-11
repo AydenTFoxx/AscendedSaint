@@ -1,63 +1,85 @@
 using System;
-using ModLib.Options;
+using System.Collections.Generic;
 using RainMeadow;
 
 namespace ModLib.Meadow;
 
+/// <summary>
+///     Utilities for retrieving and evaluating data exclusive to the Rain Meadow mod.
+/// </summary>
+/// <remarks>
+///     <para>
+///         Warning: Always ensure Rain Meadow is enabled before using this class!
+///     </para>
+///     <para>
+///         Properties and methods like <see cref="Extras.IsMeadowEnabled"/>, <see cref="Extras.IsOnlineSession"/>, and <see cref="CompatibilityManager.IsRainMeadowEnabled()"/>
+///         can all be used/queried before accessing any of this class's members. Otherwise, a <see cref="TypeLoadException"/> will be thrown, even if the given member does not have any Meadow-specific code.
+///     </para>
+/// </remarks>
 public static class MeadowUtils
 {
+    /// <summary>
+    ///     Determines if the current game session is an online lobby.
+    /// </summary>
     public static bool IsOnline => OnlineManager.lobby is not null;
+
+    /// <summary>
+    ///     Determines if this player is the host of an online session. On singleplayer, this is always true.
+    /// </summary>
     public static bool IsHost => !IsOnline || OnlineManager.lobby.isOwner;
 
     /// <summary>
-    /// Obtains the online name of the given player.
+    ///     Obtains the online name of the given player.
     /// </summary>
     /// <param name="self">The player to be queried.</param>
     /// <returns>A <c>String</c> containing the player's name, or <c>null</c> if none is found.</returns>
     public static string? GetOnlineName(this Player self)
     {
-        OnlinePhysicalObject? playerOPO = self.abstractPhysicalObject.GetOnlineObject();
+        if (!IsOnline) return null;
 
-        if (playerOPO is null)
+        OnlineCreature? onlineCreature = self.abstractCreature.GetOnlineCreature();
+
+        if (onlineCreature is null or { isAvatar: false })
         {
-            Logger.LogWarning("Failed to retrieve the OnlinePhysicalObject representation of the player, aborting.");
+            Logger.LogWarning($"Cannot retrieve the online name of invalid target: {onlineCreature}");
             return null;
         }
 
-        foreach (OnlinePlayer onlinePlayer in OnlineManager.players)
+        OnlineEntity.EntityId targetId = onlineCreature.id;
+        foreach (KeyValuePair<OnlinePlayer, OnlineEntity.EntityId> playerAvatar in OnlineManager.lobby.playerAvatars)
         {
-            if (playerOPO.owner == onlinePlayer)
-                return onlinePlayer.id.GetPersonaName();
+            if (playerAvatar.Value == targetId)
+                return playerAvatar.Key.id.GetPersonaName();
         }
 
-        Logger.LogWarning($"Failed to retrieve the OnlinePlayer instance of {self}!");
+        Logger.LogWarning($"Failed to retrieve the online name of {onlineCreature}!");
 
         return null;
     }
 
     /// <summary>
-    /// Logs a message to Rain Meadow's chat (as the system) and to this mod's log file.
+    ///     Logs a message to Rain Meadow's chat (as the system) for all online players.
     /// </summary>
-    /// <param name="message">The message to be sent to all players.</param>
+    /// <param name="message">The contents of the message to be sent.</param>
     public static void LogSystemMessage(string message)
     {
-        ChatLogManager.LogSystemMessage(message);
-
-        Logger.LogMessage($"-> {message}");
-    }
-
-    public static void InitOptionsSync()
-    {
-        if (!IsOnline || !IsHost) return;
+        if (!IsOnline) return;
 
         foreach (OnlinePlayer onlinePlayer in OnlineManager.lobby.participants)
         {
             if (onlinePlayer.isMe) continue;
 
-            onlinePlayer.SendRPCEvent(ModRPCs.SyncRemixOptions, new OnlineServerOptions() { MyOptions = OptionUtils.SharedOptions.MyOptions });
+            onlinePlayer.SendRPCEvent(ModRPCs.LogSystemMessage, message);
         }
+
+        ModRPCs.LogSystemMessage(message); // Run the RPC method anyway; No need to repeat code.
     }
 
+    /// <summary>
+    ///     Determines if the current online game session is of the given game mode type. If not online, this is always false.
+    /// </summary>
+    /// <param name="gameMode">The gamemode to be tested for.</param>
+    /// <returns><c>true</c> if the current game session is both online and of the given game mode type; <c>false</c> otherwise.</returns>
     public static bool IsGameMode(MeadowGameModes gameMode)
     {
         if (!IsOnline) return false;
@@ -73,10 +95,12 @@ public static class MeadowUtils
         return gamemode == (int)gameMode;
     }
 
-    public static void RequestOwnership(PhysicalObject physicalObject) =>
-        RequestOwnership(physicalObject.abstractPhysicalObject.GetOnlineObject(), null);
-
-    public static void RequestOwnership(OnlinePhysicalObject? onlineObject, Action<GenericResult>? callback = null)
+    /// <summary>
+    ///     Requests the owner of a given online object for its ownership, then optionally runs a callback method after resolving the request.
+    /// </summary>
+    /// <param name="onlineObject">The online object whose ownership will be requested.</param>
+    /// <param name="callback">The optional callback method to be executed after resolving the request.</param>
+    public static void RequestOwnership(OnlinePhysicalObject onlineObject, Action<GenericResult>? callback = null)
     {
         if (onlineObject is null)
         {
@@ -95,16 +119,13 @@ public static class MeadowUtils
         catch (Exception ex)
         {
             Logger.LogError($"Failed to request ownership of {onlineObject}!", ex);
+
+            callback?.Invoke(new GenericResult.Fail());
         }
 
-        void DefaultCallback(GenericResult result) => Logger.LogDebug($"Request successful? {result is GenericResult.Ok} | Do I own the object? {onlineObject.isMine}");
-    }
-
-    public enum MeadowGameModes
-    {
-        Meadow,
-        Story,
-        Arena,
-        Custom = -1
+        void DefaultCallback(GenericResult result)
+        {
+            Logger.LogDebug($"Request result: {result} | New ownership: {onlineObject.owner}");
+        }
     }
 }

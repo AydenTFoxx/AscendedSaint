@@ -17,14 +17,13 @@ public static class SaintMechanicsHooks
     private static void AscensionMechanicsILHook(ILContext context)
     {
         ILCursor c = new(context);
-        ILLabel? target = null;
 
         c.GotoNext(MoveType.After,
             static x => x.MatchLdloc(18), // physicalObject
             static x => x.MatchLdarg(0), // this
-            x => x.MatchBeq(out target) // (end of if block)
-        ).GotoPrev();
-        c.MoveAfterLabels();
+            static x => x.MatchBeq(out _) // (end of if block)
+        );
+        c.GotoPrev(MoveType.After).MoveAfterLabels();
 
         // Target: if (physicalObject != this && ...)
         //                               ^^^^ HERE (Replace)
@@ -34,10 +33,23 @@ public static class SaintMechanicsHooks
 
         // Result: if (physicalObject != NullifySelfReference(this, physicalObject) && ...)
 
-        c.GotoNext(x => x.MatchBrfalse(out _));
-        c.GotoNext(
-            MoveType.After,
-            x => x.MatchStfld(out _)
+        ILCursor d = new(c);
+
+        d.GotoNext(MoveType.Before,
+            static x => x.MatchLdloc(20),
+            static x => x.MatchLdcI4(1),
+            static x => x.MatchAdd(),
+            static x => x.MatchStloc(20)
+        );
+
+        ILLabel target1 = d.MarkLabel();
+
+        // Target: foreach (BodyChunk bodyChunk in physicalObject.bodyChunks) { ... }
+        //         ^^^^^^^ HERE (No-op; Referenced for later use)
+
+        c.GotoNext(static x => x.MatchBrfalse(out _));
+        c.GotoNext(MoveType.After,
+            static x => x.MatchStfld(out _)
         );
         c.MoveAfterLabels();
 
@@ -46,12 +58,16 @@ public static class SaintMechanicsHooks
         c.Emit(OpCodes.Ldloc, 18); // physicalObject
         c.Emit(OpCodes.Ldarg_0); // this
         c.Emit(OpCodes.Ldloc, 15); // flag2 (didAscendCreature)
-        c.EmitDelegate(ApplySaintMechanics); // bodyChunk, this, flag2
-        c.Emit(OpCodes.Stloc, 15);
-        c.Emit(OpCodes.Ldloc, 15);
-        c.Emit(OpCodes.Brtrue, target); // if (ApplySaintMechanics(bodyChunk, this, flag2)) goto IL_1435;
+        c.EmitDelegate(ApplySaintMechanics); // physicalObject, this, flag2
+        c.Emit(OpCodes.Dup);
+        c.Emit(OpCodes.Stloc, 15); // flag2 = ApplySaintMechanics(bodyChunk, this, flag2);
+        c.Emit(OpCodes.Brtrue, target1); // if (flag2) continue;
 
-        // Result: bodyChunk.vel += Custom.RNV() * 36f; if (ApplySaintMechanics(bodyChunk, this, flag2)) goto IL_1435;
+        // Result:
+        //      bodyChunk.vel += Custom.RNV() * 36f;
+        //      flag2 = ApplySaintMechanics(physicalObject, this, flag2);
+        //      if (flag2)
+        //          continue;
 
         c.GotoNext(MoveType.Before,
             static x => x.MatchLdloc(15),
@@ -61,14 +77,14 @@ public static class SaintMechanicsHooks
         // Target: if (flag2 || voidSceneTimer > 0) { ... }
         //        ^ HERE (Prepend)
 
-        ILCursor d = new(c);
+        ILCursor d1 = new(c);
 
-        d.GotoNext(MoveType.Before,
+        d1.GotoNext(MoveType.Before,
             static x => x.MatchLdcI4(0),
             static x => x.MatchStloc(28)
         ); // for (int m = 0; m < 20; m++) { ... }
 
-        ILLabel target2 = d.MarkLabel();
+        ILLabel target2 = d1.MarkLabel();
 
         c.Emit(OpCodes.Ldarg_0);
         c.Emit(OpCodes.Ldfld, typeof(Player).GetField(nameof(Player.voidSceneTimer))); // this.voidSceneTimer
@@ -82,56 +98,49 @@ public static class SaintMechanicsHooks
     {
         if (didAscendCreature || physicalObject is not (Creature or Oracle))
         {
+            if (!self.monkAscension)
+            {
+                self.burstX = 0f;
+                self.burstY = 0f;
+            }
+
             return didAscendCreature;
         }
 
-        if (AscensionHandler.CanReviveObject(physicalObject)
-            && OptionUtils.IsOptionEnabled(Options.ALLOW_REVIVAL))
+        bool requireKarmaFlower = OptionUtils.IsOptionEnabled(Options.REQUIRE_KARMA_FLOWER) && physicalObject != self;
+        KarmaFlower? karmaFlower = requireKarmaFlower
+            ? AscensionHandler.GetHeldKarmaFlower(self)
+            : null;
+
+        if (requireKarmaFlower && karmaFlower is null)
         {
-            Logger.LogDebug("Attempting to revive: " + physicalObject);
+            Logger.LogDebug("Player has no Karma Flower, ignoring.");
 
-            if (OptionUtils.IsOptionEnabled(Options.REQUIRE_KARMA_FLOWER))
-            {
-                PhysicalObject? karmaFlower = AscensionHandler.GetHeldKarmaFlower(self);
+            return didAscendCreature;
+        }
 
-                if (karmaFlower is null)
-                {
-                    Logger.LogDebug("Player has no Karma Flower, ignoring.");
-                    return false;
-                }
+        bool result = AscensionHandler.TryAscendObject(physicalObject, self);
 
-                karmaFlower.Destroy();
-            }
+        if (result)
+        {
+            didAscendCreature = true;
 
-            AscensionHandler.AscendObject(physicalObject, self);
-
-            self.DeactivateAscension();
             self.SaintStagger(80);
 
-            self.voidSceneTimer = -1;
+            self.monkAscension = false;
 
-            didAscendCreature = true;
-        }
-        else if (physicalObject == self && (OptionUtils.IsOptionEnabled(Options.ALLOW_SELF_ASCENSION) || self.wormCutsceneLockon))
-        {
-            Logger.LogDebug("Attempting to ascend: " + self.SlugCatClass);
+            self.burstX = 0f;
+            self.burstY = 0f;
 
-            AscensionHandler.AscendObject(self, self);
+            if (physicalObject != self)
+                self.voidSceneTimer = -1;
 
-            didAscendCreature = true;
+            karmaFlower?.Destroy();
         }
 
         return didAscendCreature;
     }
 
-    /// <summary>
-    /// Replaces the given <c>Player</c> argument with <c>null</c> in order to allow their ascension ability to target themselves.
-    /// </summary>
-    /// <param name="self">The player instance to be tested.</param>
-    /// <param name="obj">The physical object the ascension ability is targeting.</param>
-    /// <returns><c>null</c> if both arguments are the same, <c><paramref name="self"/></c> otherwise.</returns>
     private static Player? NullifySelfReference(Player self, PhysicalObject obj) =>
-        obj == self && OptionUtils.IsOptionEnabled(Options.ALLOW_SELF_ASCENSION)
-            ? null
-            : self;
+        self == obj && OptionUtils.IsOptionEnabled(Options.ALLOW_SELF_ASCENSION) ? null : self;
 }

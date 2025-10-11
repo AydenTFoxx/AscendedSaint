@@ -31,15 +31,19 @@ public class Main : ModPlugin
 
     public override void OnEnable()
     {
+        if (IsModEnabled) return;
+
         base.OnEnable();
 
-        AscensionHandler.AscensionImpl = IsMeadowEnabled
+        AscensionHandler.AscensionImpl = Extras.IsMeadowEnabled
             ? new MeadowAscensionImpl()
             : new VanillaAscensionImpl();
     }
 
     public override void OnDisable()
     {
+        if (!IsModEnabled) return;
+
         base.OnDisable();
 
         AscensionHandler.AscensionImpl = null;

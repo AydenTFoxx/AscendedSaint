@@ -5,11 +5,16 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-#nullable disable
+// Credits to N73k for original script
 
 namespace ModLib.Generics;
 
-// Credits to N73k for original script
+/// <summary>
+///     A dictionary of weak references, akin to a <see cref="ConditionalWeakTable{T, V}"/>.
+///     When a key or value is dropped/disposed/GC'ed, its corresponding pair is also removed.
+/// </summary>
+/// <typeparam name="TKey">The type for the keys of this dictionary.</typeparam>
+/// <typeparam name="TValue">The type for the values of this dictionary.</typeparam>
 public class WeakDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDisposable
     where TKey : class
     where TValue : class
@@ -63,6 +68,7 @@ public class WeakDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDisposab
         }
     }
 
+    /// <inheritdoc/>
     public TValue this[TKey key]
     {
         get => TryGetValue(key, out TValue val) ? val : throw new KeyNotFoundException();
@@ -92,6 +98,7 @@ public class WeakDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDisposab
         }
     }
 
+    /// <inheritdoc/>
     public ICollection<TKey> Keys
     {
         get
@@ -104,6 +111,7 @@ public class WeakDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDisposab
         }
     }
 
+    /// <inheritdoc/>
     public ICollection<TValue> Values
     {
         get
@@ -116,6 +124,7 @@ public class WeakDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDisposab
         }
     }
 
+    /// <inheritdoc/>
     public int Count
     {
         get
@@ -128,16 +137,20 @@ public class WeakDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDisposab
         }
     }
 
+    /// <inheritdoc/>
     public bool IsReadOnly => false;
 
+    /// <inheritdoc/>
     public void Add(TKey key, TValue value)
     {
         if (!Set(key, value, isUpdateOkay: false))
             throw new ArgumentException("Key already exists");
     }
 
+    /// <inheritdoc/>
     public void Add(KeyValuePair<TKey, TValue> item) => Add(item.Key, item.Value);
 
+    /// <inheritdoc/>
     public void Clear()
     {
         lock (locker)
@@ -147,9 +160,10 @@ public class WeakDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDisposab
         }
     }
 
+    /// <inheritdoc/>
     public bool Contains(KeyValuePair<TKey, TValue> item)
     {
-        object curVal = null;
+        object? curVal = null;
 
         lock (locker)
         {
@@ -162,6 +176,7 @@ public class WeakDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDisposab
         return curVal?.Equals(item.Value) == true;
     }
 
+    /// <inheritdoc/>
     public bool ContainsKey(TKey key)
     {
         lock (locker)
@@ -170,10 +185,13 @@ public class WeakDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDisposab
         }
     }
 
+    /// <inheritdoc/>
     public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex) => ((IDictionary<TKey, TValue>)CurrentDictionary).CopyTo(array, arrayIndex);
 
+    /// <inheritdoc/>
     public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => CurrentDictionary.GetEnumerator();
 
+    /// <inheritdoc/>
     public bool Remove(TKey key)
     {
         lock (locker)
@@ -188,6 +206,7 @@ public class WeakDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDisposab
         }
     }
 
+    /// <inheritdoc/>
     public bool Remove(KeyValuePair<TKey, TValue> item)
     {
         lock (locker)
@@ -205,13 +224,14 @@ public class WeakDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDisposab
         }
     }
 
+    /// <inheritdoc/>
     public bool TryGetValue(TKey key, out TValue value)
     {
         lock (locker)
         {
             if (!keyHolderMap.TryGetValue(key, out WeakKeyHolder weakKeyHolder))
             {
-                value = default;
+                value = default!;
                 return false;
             }
 
@@ -224,7 +244,10 @@ public class WeakDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDisposab
 
     private bool bAlive = true;
 
+    /// <inheritdoc/>
     public void Dispose() => Dispose(true);
+
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
     protected void Dispose(bool bManual)
     {
@@ -238,8 +261,8 @@ public class WeakDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDisposab
 
         try
         {
-            keyHolderMap = null;
-            valueMap = null;
+            keyHolderMap = null!;
+            valueMap = null!;
             bAlive = false;
         }
         finally
@@ -253,18 +276,19 @@ public class WeakDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDisposab
     {
         Dispose(false);
     }
-}
 
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
 
-public class ObjectReferenceEqualityComparer<T> : IEqualityComparer<T>
-{
-    public static ObjectReferenceEqualityComparer<T> Default = new();
+    private class ObjectReferenceEqualityComparer<T> : IEqualityComparer<T>
+    {
+        public static ObjectReferenceEqualityComparer<T> Default = new();
 
-    public bool Equals(T x, T y) => ReferenceEquals(x, y);
+        public bool Equals(T x, T y) => ReferenceEquals(x, y);
 
-    public int GetHashCode(T obj) => RuntimeHelpers.GetHashCode(obj);
-}
+        public int GetHashCode(T obj) => RuntimeHelpers.GetHashCode(obj);
+    }
 
-public class ObjectReferenceEqualityComparer : ObjectReferenceEqualityComparer<object>
-{
+    private class ObjectReferenceEqualityComparer : ObjectReferenceEqualityComparer<object>
+    {
+    }
 }

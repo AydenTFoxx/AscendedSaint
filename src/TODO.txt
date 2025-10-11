@@ -1,0 +1,7 @@
+Player sees their own name in the ascension/revival messages, instead of the actual ascended/revived target.
+
+ModLib's ServerOptions.MyOptions only supports integers for values. In particular, strings are impossible to store.
+
+ModLib's ServerOptions.SetOptions() could be simplified for performance.
+
+ModLib needs a significant rewrite/overhaul for performance purposes, particularly for caching common checks such as whether a game session is online (via Rain Meadow) or not.

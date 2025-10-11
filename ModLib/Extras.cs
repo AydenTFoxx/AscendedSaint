@@ -12,10 +12,33 @@ using MonoMod.Cil;
 
 namespace ModLib;
 
+/// <summary>
+///     A collection of utilities and wrappers for common modding activities.
+/// </summary>
 public static class Extras
 {
     /// <summary>
-    /// Wraps a given action in a try-catch, safely performing its code while handling potential exceptions.
+    ///     Whether or not the Rain Meadow mod is present. This value is cached for performance purposes.
+    /// </summary>
+    public static bool IsMeadowEnabled { get; set; }
+
+    /// <summary>
+    ///     Whether or not the Improved Input Config: Extended mod is present. This value is cached for performance purposes.
+    /// </summary>
+    public static bool IsIICEnabled { get; set; }
+
+    /// <summary>
+    ///     If the current game session is on an online lobby.
+    /// </summary>
+    public static bool IsOnlineSession => IsMeadowEnabled && MeadowUtils.IsOnline;
+
+    /// <summary>
+    ///     If the player is the host of the current game session. On Singleplayer, this is always true.
+    /// </summary>
+    public static bool IsHostPlayer => !IsMeadowEnabled || MeadowUtils.IsHost;
+
+    /// <summary>
+    ///     Wraps a given action in a try-catch, safely performing its code while handling potential exceptions.
     /// </summary>
     /// <param name="action">The action to be executed.</param>
     /// <remarks>Use sparsely; If possible, avoid throwing an exception at all instead of using this method.</remarks>
@@ -32,7 +55,7 @@ public static class Extras
     }
 
     /// <summary>
-    /// Wraps a given IL hook in a try-catch, preventing it from breaking other code when applied.
+    ///     Wraps a given IL hook in a try-catch, preventing it from breaking other code when applied.
     /// </summary>
     /// <param name="action">The hook method to be wrapped.</param>
     /// <returns>An <c>ILContext.Manipulator</c> instance to be passed in place of the method itself.</returns>
@@ -53,35 +76,15 @@ public static class Extras
     }
 
     /// <summary>
-    /// Ensures the client's <c>SharedOptions</c> object is always synced with the values from the mod's REMIX menu.
+    ///     Refreshes the local <see cref="OptionUtils.SharedOptions"/> instance with the host player's REMIX options.
     /// </summary>
-    public static void AddPlayerHook(On.GameSession.orig_AddPlayer orig, GameSession self, AbstractCreature player)
-    {
-        orig.Invoke(self, player);
-
-        bool isOnlineSession = CompatibilityManager.IsRainMeadowEnabled() && MeadowUtils.IsOnline;
-
-        if (self.game.Players.Count <= 1 && (!isOnlineSession || MeadowUtils.IsHost))
-        {
-            OptionUtils.SharedOptions.RefreshOptions(isOnlineSession);
-        }
-        else
-        {
-            // In a multiplayer context; No need to refresh local options again.
-            Logger.LogDebug($"{self.game.FirstAnyPlayer} is already present, ignoring.");
-        }
-    }
-
-    /// <summary>
-    /// Syncs the player's <c>SharedOptions</c> object with the host of the current online lobby.
-    /// </summary>
-    public static void GameSessionHook(On.GameSession.orig_ctor orig, GameSession self, RainWorldGame game)
+    internal static void GameSessionHook(On.GameSession.orig_ctor orig, GameSession self, RainWorldGame game)
     {
         orig.Invoke(self, game);
 
-        if (CompatibilityManager.IsRainMeadowEnabled() && MeadowUtils.IsHost)
+        if (IsHostPlayer)
         {
-            MeadowUtils.InitOptionsSync();
+            OptionUtils.SharedOptions.RefreshOptions(IsOnlineSession);
         }
     }
 }

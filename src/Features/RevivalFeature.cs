@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ModLib;
 using ModLib.Options;
 using MoreSlugcats;
 using RWCustom;
@@ -7,17 +8,47 @@ namespace AscendedSaint.Features;
 
 public static class RevivalFeature
 {
-    public static void ReviveCreature(Creature target, float targetHealth = 1f)
+    private static float TargetHealth => OptionUtils.GetOptionValue(Options.REVIVAL_HEALTH_FACTOR) * 0.01f;
+    private static int RevivalStun => OptionUtils.GetOptionValue(Options.REVIVAL_STUN_DURATION);
+
+    /// <summary>
+    /// Obtains an iterator's full name based on its ID.
+    /// </summary>
+    /// <param name="oracleID">The oracle ID to be tested.</param>
+    /// <returns>The iterator's name (e.g. <c>Five Pebbles</c>), or the string <c>Unknown Iterator (<paramref name="oracleID"/>)</c> if a specific name couldn't be determined.</returns>
+    /// <remarks>Custom iterators should only be added here if they are accessible and ascendable in Saint's campaign.</remarks>
+    public static string GetOracleName(Oracle.OracleID oracleID) =>
+        oracleID == Oracle.OracleID.SL
+        ? "Looks to the Moon"
+        : oracleID == MoreSlugcatsEnums.OracleID.CL
+            ? "Five Pebbles"
+            : oracleID == MoreSlugcatsEnums.OracleID.ST
+                ? "Sliver of Straw" // Would you de-ascend Sliver of Straw?
+                : $"Unknown Iterator ({oracleID})";
+
+    /// <summary>
+    /// Restores a creature's health and sets its state as "alive" once again.
+    /// </summary>
+    /// <param name="creature">The creature to be revived.</param>
+    /// <param name="health">
+    ///     The health to be restored for the newly revived creature.
+    ///     For slugcats/slugpups, this is always <c>1f</c> (100%).
+    /// </param>
+    public static bool ReviveCreature(Creature target)
     {
-        if (!target.dead || targetHealth <= 0f) return;
+        if (!target.dead)
+        {
+            Logger.LogWarning($"{target} cannot be revived, as it's already alive!");
+            return false;
+        }
 
         AbstractCreature abstractCreature = target.abstractCreature;
 
-        if (abstractCreature.state is not HealthState healthState)
-            healthState = new HealthState(abstractCreature);
-
-        healthState.alive = true;
-        healthState.health = target is Player ? 1f : targetHealth;
+        if (abstractCreature.state is HealthState healthState)
+        {
+            healthState.alive = true;
+            healthState.health = target is Player ? 1f : TargetHealth;
+        }
 
         target.dead = false;
         target.killTag = null;
@@ -34,20 +65,14 @@ public static class RevivalFeature
             player.exhausted = true;
             player.aerobicLevel = 1f;
 
-            if (player == player.room.game.FirstRealizedPlayer
-                && player.room.game.cameras?[0].hud?.textPrompt is not null)
-            {
-                player.room.game.cameras[0].hud.textPrompt.gameOverMode = false;
-            }
-        }
-        else
-        {
-            RemoveFromRespawnsList(target);
+            player.room?.game.cameras[0].hud?.textPrompt?.gameOverMode = false;
         }
 
-        target.Stun(target is Player ? 40 : 100);
+        target.Stun(target is Player ? (int)(RevivalStun * 0.5f) : RevivalStun);
 
-        ModLib.Logger.LogInfo($"{target} was revived!");
+        Logger.LogInfo($"{target} was revived!");
+
+        return true;
     }
 
     /// <summary>
@@ -55,9 +80,13 @@ public static class RevivalFeature
     /// </summary>
     /// <param name="oracle">The iterator to de-ascend.</param>
     /// <remarks>But why would you?</remarks>
-    public static void ReviveOracle(Oracle oracle)
+    public static bool ReviveOracle(Oracle oracle)
     {
-        if (!CanReviveOracle(oracle)) return;
+        if (!CanReviveOracle(oracle))
+        {
+            Logger.LogWarning($"Cannot revive oracle {GetOracleName(oracle.ID)}!");
+            return false;
+        }
 
         StoryGameSession storySession = oracle.room.game.GetStorySession;
 
@@ -89,13 +118,17 @@ public static class RevivalFeature
             storySession.saveState.deathPersistentSaveData.ripMoon = false;
         }
 
+        oracle.stun = (int)(RevivalStun * 0.5f);
+
         oracle.health = 1f;
 
-        ModLib.Logger.LogInfo($"{GetOracleName(oracle.ID)} was revived!");
+        Logger.LogInfo($"{GetOracleName(oracle.ID)} was revived!");
+
+        return true;
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0046:Convert to conditional expression", Justification = "Not as readable as a conditional expression")]
-    public static bool CanReviveOracle(Oracle oracle)
+    private static bool CanReviveOracle(Oracle oracle)
     {
         if (oracle.room?.game.session is not StoryGameSession storyGame) return false;
 
@@ -108,21 +141,6 @@ public static class RevivalFeature
 
         return OptionUtils.IsOptionEnabled(Options.CUSTOM_ORACLE_REVIVAL) && !oracle.Consious;
     }
-
-    /// <summary>
-    /// Obtains an iterator's full name based on its ID.
-    /// </summary>
-    /// <param name="oracleID">The oracle ID to be tested.</param>
-    /// <returns>The iterator's name (e.g. <c>Five Pebbles</c>), or the string <c>Unknown Iterator (<paramref name="oracleID"/>)</c> if a specific name couldn't be determined.</returns>
-    /// <remarks>Custom iterators should only be added here if they are accessible and ascendable in Saint's campaign.</remarks>
-    public static string GetOracleName(Oracle.OracleID oracleID) =>
-        oracleID == Oracle.OracleID.SL
-        ? "Looks to the Moon"
-        : oracleID == MoreSlugcatsEnums.OracleID.CL
-            ? "Five Pebbles"
-            : oracleID == MoreSlugcatsEnums.OracleID.ST
-                ? "Sliver of Straw" // Would you de-ascend Sliver of Straw?
-                : $"Unknown Iterator ({oracleID})";
 
     /// <summary>
     /// Creates a new Neuron Fly object for Looks to the Moon.
@@ -150,16 +168,18 @@ public static class RevivalFeature
     /// Removes a given creature from the world's <c>respawnCreatures</c> list.
     /// </summary>
     /// <param name="creature">The creature to be removed.</param>
-    private static void RemoveFromRespawnsList(Creature creature)
+    public static void RemoveFromRespawnsList(Creature creature)
     {
+        if (creature is Player) return;
+
         CreatureState state = creature.abstractCreature.state;
         EntityID ID = creature.abstractCreature.ID;
 
         if (state.alive && ID.spawner >= 0 && creature.room?.game.session is StoryGameSession storySession)
         {
-            storySession.saveState.respawnCreatures.Remove(ID.spawner);
-        }
+            bool removed = storySession.saveState.respawnCreatures.Remove(ID.spawner);
 
-        ModLib.Logger.LogDebug($"Removed {creature} ({ID.spawner}) from the respawns list.");
+            Logger.LogDebug($"Removed {creature} ({ID.spawner}) from the respawns list? {removed}");
+        }
     }
 }
