@@ -10,6 +10,8 @@ namespace AscendedSaint.Attunement;
 /// </summary>
 public static class SaintMechanicsHooks
 {
+    private static bool didReviveCreature;
+
     public static void AddHooks() => IL.Player.ClassMechanicsSaint += Extras.WrapILHook(AscensionMechanicsILHook);
 
     public static void RemoveHooks() => IL.Player.ClassMechanicsSaint -= Extras.WrapILHook(AscensionMechanicsILHook);
@@ -44,8 +46,26 @@ public static class SaintMechanicsHooks
 
         ILLabel target1 = d.MarkLabel();
 
-        // Target: foreach (BodyChunk bodyChunk in physicalObject.bodyChunks) { ... }
-        //         ^^^^^^^ HERE (No-op; Referenced for later use)
+        // Target: for (int num10 = room.physicalObjects[i].Count - 1; num10 >= 0; num10--) { ... }
+        //                                                                         ^^^^^^^ HERE (No-op; Referenced for later use)
+
+        d.GotoNext(
+            static x => x.MatchLdfld(typeof(UpdatableAndDeletable).GetField(nameof(UpdatableAndDeletable.room))),
+            static x => x.MatchLdfld(typeof(Room).GetField(nameof(Room.physicalObjects)))
+        );
+
+        d.GotoNext(MoveType.After,
+            static x => x.MatchBlt(out _)
+        ).MoveAfterLabels();
+
+        // Target: for (int i = 0; i < room.physicalObjects.Count; i++) { ... } <-- HERE (Append)
+
+        d.Emit(OpCodes.Ldarg_0); // this
+        d.EmitDelegate(ResolveAscension); // ResolveAscension(this);
+
+        // Result:
+        //      for (int i = 0; i < room.physicalObjects.Count; i++) { ... }
+        //      ResolveAscension(this);
 
         c.GotoNext(static x => x.MatchBrfalse(out _));
         c.GotoNext(MoveType.After,
@@ -55,17 +75,17 @@ public static class SaintMechanicsHooks
 
         // Target: bodyChunk.vel += Custom.RNV() * 36f; <-- HERE (Append)
 
-        c.Emit(OpCodes.Ldloc, 18); // physicalObject
+        c.Emit(OpCodes.Ldloc, 21); // bodyChunk
         c.Emit(OpCodes.Ldarg_0); // this
         c.Emit(OpCodes.Ldloc, 15); // flag2 (didAscendCreature)
-        c.EmitDelegate(ApplySaintMechanics); // physicalObject, this, flag2
+        c.EmitDelegate(ApplySaintMechanics); // bodyChunk, this, flag2
         c.Emit(OpCodes.Dup);
         c.Emit(OpCodes.Stloc, 15); // flag2 = ApplySaintMechanics(bodyChunk, this, flag2);
         c.Emit(OpCodes.Brtrue, target1); // if (flag2) continue;
 
         // Result:
         //      bodyChunk.vel += Custom.RNV() * 36f;
-        //      flag2 = ApplySaintMechanics(physicalObject, this, flag2);
+        //      flag2 = ApplySaintMechanics(bodyChunk, this, flag2);
         //      if (flag2)
         //          continue;
 
@@ -87,23 +107,54 @@ public static class SaintMechanicsHooks
         ILLabel target2 = d1.MarkLabel();
 
         c.Emit(OpCodes.Ldarg_0);
-        c.Emit(OpCodes.Ldfld, typeof(Player).GetField(nameof(Player.voidSceneTimer))); // this.voidSceneTimer
-        c.Emit(OpCodes.Ldc_I4, -1); // -1
-        c.Emit(OpCodes.Beq, target2); // if (this.voidSeaTimer == -1) { goto IL_156c; }
+        c.EmitDelegate(IgnoreAscensionSound);
+        c.Emit(OpCodes.Brtrue, target2);
 
-        // Result: if (this.voidSeaTimer == -1) { goto IL_156c; } else if (flag2 || voidSceneTimer > 0) { ... }
-    }
+        // Result: if (IgnoreAscensionSound(this.voidSceneTimer)) { goto IL_156c; } else if (flag2 || voidSceneTimer > 0) { ... }
 
-    private static bool ApplySaintMechanics(PhysicalObject physicalObject, Player self, bool didAscendCreature)
-    {
-        if (didAscendCreature || physicalObject is not (Creature or Oracle))
+        static bool IgnoreAscensionSound(Player self)
         {
-            if (!self.monkAscension)
+            if (self.voidSceneTimer == -1)
             {
-                self.burstX = 0f;
-                self.burstY = 0f;
+                self.voidSceneTimer = 0;
+                return true;
             }
 
+            return false;
+        }
+
+        static Player? NullifySelfReference(Player self, PhysicalObject obj)
+        {
+            return self == obj && OptionUtils.IsOptionEnabled(Options.ALLOW_SELF_ASCENSION) ? null : self;
+        }
+
+        static void ResolveAscension(Player self)
+        {
+            if (!didReviveCreature) return;
+
+            if (OptionUtils.IsOptionEnabled(Options.REQUIRE_KARMA_FLOWER) && !self.dead)
+            {
+                AscensionHandler.GetHeldKarmaFlower(self)?.Destroy();
+            }
+
+            self.SaintStagger(80);
+
+            self.monkAscension = false;
+
+            self.burstX = 0f;
+            self.burstY = 0f;
+
+            didReviveCreature = false;
+        }
+    }
+
+    private static bool ApplySaintMechanics(BodyChunk bodyChunk, Player self, bool didAscendCreature)
+    {
+        PhysicalObject physicalObject = bodyChunk.owner;
+
+        if (physicalObject is not (Creature or Oracle)
+            || bodyChunk != physicalObject.bodyChunks[0])
+        {
             return didAscendCreature;
         }
 
@@ -114,7 +165,7 @@ public static class SaintMechanicsHooks
 
         if (requireKarmaFlower && karmaFlower is null)
         {
-            Logger.LogDebug("Player has no Karma Flower, ignoring.");
+            Logger.LogDebug($"Player has no Karma Flower, ignoring: {physicalObject}");
 
             return didAscendCreature;
         }
@@ -125,22 +176,14 @@ public static class SaintMechanicsHooks
         {
             didAscendCreature = true;
 
-            self.SaintStagger(80);
-
-            self.monkAscension = false;
-
-            self.burstX = 0f;
-            self.burstY = 0f;
-
             if (physicalObject != self)
+            {
                 self.voidSceneTimer = -1;
 
-            karmaFlower?.Destroy();
+                didReviveCreature = true;
+            }
         }
 
         return didAscendCreature;
     }
-
-    private static Player? NullifySelfReference(Player self, PhysicalObject obj) =>
-        self == obj && OptionUtils.IsOptionEnabled(Options.ALLOW_SELF_ASCENSION) ? null : self;
 }

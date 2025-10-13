@@ -12,6 +12,11 @@ public static class Registry
 {
     private static readonly Dictionary<Assembly, ModMetadata> RegisteredMods = [];
 
+    static Registry()
+    {
+        Core.Initialize();
+    }
+
     /// <summary>
     ///     Registers the current mod assembly to ModLib. This should be done sometime during the mod-loading process,
     ///     typically from the <c>Main</c>/<c>Plugin</c> class constructor, <c>Awake()</c> or <c>OnEnable()</c> methods.

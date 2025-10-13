@@ -2,6 +2,4 @@ Player sees their own name in the ascension/revival messages, instead of the act
 
 ModLib's ServerOptions.MyOptions only supports integers for values. In particular, strings are impossible to store.
 
-ModLib's ServerOptions.SetOptions() could be simplified for performance.
-
-ModLib needs a significant rewrite/overhaul for performance purposes, particularly for caching common checks such as whether a game session is online (via Rain Meadow) or not.
+ModLib's Registry only supports one loaded mod at a time; If multiple mods reference ModLib, the first mod registered is used for metadata purposes.

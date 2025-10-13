@@ -6,16 +6,15 @@ using UnityEngine;
 namespace ModLib.Options;
 
 /// <summary>
-/// Helper class for building <c>OpTab</c>s with a variety of chain-able methods.
+///     Helper class for building <c>OpTab</c>s with a variety of chain-able methods.
 /// </summary>
-/// <remarks>To return the modified <c>OpTab</c> object, use <see cref="Build()"/>.</remarks>
-public class OptionBuilder
+/// <remarks>To return the generated <c>OpTab</c> object, use <see cref="Build()"/>.</remarks>
+public class OptionBuilder(OpTab opTab)
 {
     private Vector2 vector2 = new(100f, 400f);
-    private readonly OpTab opTab;
 
     /// <summary>
-    /// Initializes a new <c>OptionBuilder</c> instance for creating option tabs.
+    ///     Initializes a new <c>OptionBuilder</c> instance for creating option tabs.
     /// </summary>
     /// <param name="owner">The <c>OptionInterface</c> who will own the resulting <c>OpTab</c> instance.</param>
     /// <param name="tabName">The name of the tab itself, displayed on the left side of the menu; Only visible with two or more tabs.</param>
@@ -24,32 +23,24 @@ public class OptionBuilder
     ///     Colors are retrieved by index and applied to relevant fields in alphabetical order.
     /// </param>
     public OptionBuilder(OptionInterface owner, string tabName, params Color[] colors)
+        : this(
+            new OpTab(owner, tabName)
+            {
+                colorButton = GetColorOrDefault(colors, 0),
+                colorCanvas = GetColorOrDefault(colors, 1)
+            }
+        )
     {
-        opTab = new OpTab(owner, tabName)
-        {
-            colorButton = GetColorOrDefault(colors, 0),
-            colorCanvas = GetColorOrDefault(colors, 1)
-        };
-
-        opTab.AddItems(
-            [
-                new OpLabel(new Vector2(200f, 520f), new Vector2(200f, 40f), ModPlugin.Assembly.GetModName(), bigText: true),
-                new OpLabel(new Vector2(245f, 510f), new Vector2(200f, 15f), $"[v{ModPlugin.Assembly.GetModVersion()}]")
-                {
-                    color = GetColorOrDefault(colors, 2, Color.gray)
-                }
-            ]
-        );
     }
 
     /// <summary>
-    /// Returns the generated <c>OpTab</c> object with the applied options of previous methods.
+    ///     Returns the generated <c>OpTab</c> object with the applied options of previous methods.
     /// </summary>
     /// <returns>The builder's <c>OpTab</c> instance.</returns>
     public OpTab Build() => opTab;
 
     /// <summary>
-    /// Adds a new <c>OpCheckBox</c> to the <c>OpTab</c> instance, with a descriptive <c>OpLabel</c> after it.
+    ///     Adds a new <c>OpCheckBox</c> to the <c>OpTab</c> instance, with a descriptive <c>OpLabel</c> after it.
     /// </summary>
     /// <param name="text">The check box's label. Will be displayed right after the box itself.</param>
     /// <param name="configurable">The <c>Configurable</c> this check box will be bound to.</param>
@@ -85,7 +76,7 @@ public class OptionBuilder
     }
 
     /// <summary>
-    /// Adds a new <c>OpComboBox</c> to the <c>OpTab</c> instance, with a descriptive <c>OpLabel</c> after it.
+    ///     Adds a new <c>OpComboBox</c> to the <c>OpTab</c> instance, with a descriptive <c>OpLabel</c> after it.
     /// </summary>
     /// <param name="text">The combo box's label. Will be displayed right after the box itself.</param>
     /// <param name="configurable">The <c>Configurable</c> this combo box will be bound to.</param>
@@ -122,7 +113,7 @@ public class OptionBuilder
     }
 
     /// <summary>
-    /// Adds a new <c>OpSlider</c> to the <c>OpTab</c> instance, with a descriptive <c>OpLabel</c> before it.
+    ///     Adds a new <c>OpSlider</c> to the <c>OpTab</c> instance, with a descriptive <c>OpLabel</c> before it.
     /// </summary>
     /// <param name="text">The slider's label. Will be displayed right before the slider itself.</param>
     /// <param name="configurable">The <c>Configurable</c> this slider will be bound to.</param>
@@ -160,7 +151,7 @@ public class OptionBuilder
     }
 
     /// <summary>
-    /// Adds extra space before the next object added.
+    ///     Adds extra space before the next object added.
     /// </summary>
     /// <param name="padding">The amount of padding to be added.</param>
     /// <returns>The <c>OptionBuilder</c> object.</returns>
@@ -172,7 +163,7 @@ public class OptionBuilder
     }
 
     /// <summary>
-    /// Adds a new <c>OpLabel</c> to the <c>OpTab</c> instance.
+    ///     Adds a new <c>OpLabel</c> to the <c>OpTab</c> instance.
     /// </summary>
     /// <param name="text">The text to be rendered.</param>
     /// <param name="size">The size of the label element.</param>
@@ -198,13 +189,13 @@ public class OptionBuilder
     }
 
     /// <summary>
-    /// Retrieves a color from the given array, a fallback if provided, or the default Rain World color for menu elements (rgbMediumGrey) if neither are provided.
+    ///     Retrieves a color from the given array, a fallback if provided, or the default Rain World color for menu elements (rgbMediumGrey) if neither are provided.
     /// </summary>
     /// <param name="colors">The color array to search for a given color.</param>
     /// <param name="index">The index of the color to be retrieved.</param>
     /// <param name="fallback">A fallback color to use if the given index does not have a value.</param>
     /// <returns>A <c>Color</c> instance for usage by menu elements.</returns>
-    private Color GetColorOrDefault(Color[] colors, int index, Color fallback = default)
+    private static Color GetColorOrDefault(Color[] colors, int index, Color fallback = default)
     {
         Color color = colors.ElementAtOrDefault(index);
 

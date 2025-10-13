@@ -84,7 +84,7 @@ public static class Extras
 
         if (IsHostPlayer)
         {
-            OptionUtils.SharedOptions.RefreshOptions(IsOnlineSession);
+            OptionUtils.SharedOptions.RefreshOptions();
         }
     }
 }

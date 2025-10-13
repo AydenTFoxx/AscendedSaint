@@ -26,9 +26,9 @@ public class ModPlugin : BaseUnityPlugin
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
     /// <summary>
-    ///     Creates a new ModPlugin instance with the provided OptionInterface as the REMIX options provider.
+    ///     Creates a new ModPlugin instance with the provided REMIX option interface.
     /// </summary>
-    /// <param name="options">The class which holds the mod's REMIX options, if any.</param>
+    /// <param name="options">The mod's REMIX option interface class, if any.</param>
     public ModPlugin(OptionInterface options)
     {
         this.options = options;
@@ -44,11 +44,6 @@ public class ModPlugin : BaseUnityPlugin
     {
         if (IsModEnabled) return;
         IsModEnabled = true;
-
-        CompatibilityManager.CheckModCompats();
-
-        Extras.IsMeadowEnabled = CompatibilityManager.IsRainMeadowEnabled();
-        Extras.IsIICEnabled = CompatibilityManager.IsIICEnabled();
 
         Extras.WrapAction(() =>
         {
@@ -139,7 +134,7 @@ public class ModPlugin : BaseUnityPlugin
     }
 
     /// <summary>
-    ///     Updates ModLib classes which must be regularly ticked.
+    ///     Updates mod classes which must be regularly ticked.
     ///     Override this to add behavior which runs on every game tick.
     /// </summary>
     protected virtual void GameUpdateHook(On.RainWorldGame.orig_Update orig, RainWorldGame self)

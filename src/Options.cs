@@ -77,5 +77,23 @@ public class Options : OptionInterface
             .AddPadding(Vector2.up * 10f)
             .AddSliderOption("Revival Stun Duration", REVIVAL_STUN_DURATION!, 1f)
             .Build();
+
+        foreach (OpTab opTab in Tabs)
+        {
+            AddOpTabHeader(opTab);
+        }
+    }
+
+    private static void AddOpTabHeader(OpTab opTab)
+    {
+        opTab.AddItems(
+            [
+                new OpLabel(new Vector2(200f, 520f), new Vector2(200f, 40f), Main.MOD_NAME, bigText: true),
+                new OpLabel(new Vector2(245f, 510f), new Vector2(200f, 15f), $"[v{Main.MOD_VERSION}]")
+                {
+                    color = Color.gray
+                }
+            ]
+        );
     }
 }

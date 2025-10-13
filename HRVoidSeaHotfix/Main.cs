@@ -21,6 +21,10 @@ public class Main : BaseUnityPlugin
 
     public Main()
     {
+        ModLib.Registry.RegisterMod(this, null);
+
+        //ModLib.Logger.CleanLogFile();
+
         Logger = base.Logger;
     }
 

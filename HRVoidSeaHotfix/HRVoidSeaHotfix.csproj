@@ -17,6 +17,10 @@
 		</Reference>
 	</ItemGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\ModLib\ModLib.csproj" />
+	</ItemGroup>
+
 	<Target Name="GenerateMod" AfterTargets="PostBuildEvent">
 		<ItemGroup>
 			<RemovePlugins Include="../mod-hr/plugins/*.dll" />
