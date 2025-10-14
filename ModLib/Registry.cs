@@ -1,7 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using BepInEx;
+using ModLib.Options;
 
 namespace ModLib;
 
@@ -10,11 +11,13 @@ namespace ModLib;
 /// </summary>
 public static class Registry
 {
-    private static readonly Dictionary<Assembly, ModMetadata> RegisteredMods = [];
+    private static readonly ConditionalWeakTable<Assembly, ModMetadata> RegisteredMods = new();
 
     static Registry()
     {
         Core.Initialize();
+
+        RegisteredMods.Add(typeof(Registry).Assembly, new ModMetadata(Core.PluginData, null, Core.Logger));
     }
 
     /// <summary>
@@ -28,9 +31,12 @@ public static class Registry
     /// </param>
     public static void RegisterMod(BaseUnityPlugin plugin, Type? optionHolder)
     {
-        RegisteredMods.Add(Assembly.GetCallingAssembly(), new ModMetadata(plugin.Info.Metadata, optionHolder));
+        RegisteredMods.Add(Assembly.GetCallingAssembly(), new ModMetadata(plugin, optionHolder));
 
-        ModPlugin.Assembly ??= Assembly.GetCallingAssembly();
+        if (optionHolder is not null)
+        {
+            ServerOptions.AddOptionSource(optionHolder);
+        }
     }
 
     /// <summary>
@@ -39,54 +45,82 @@ public static class Registry
     /// <returns><c>true</c> if the mod was successfully unregistered, <c>false</c> otherwise (e.g. if it was not registered at all).</returns>
     public static bool UnregisterMod()
     {
-        if (ModPlugin.Assembly == Assembly.GetCallingAssembly())
+        Assembly caller = Assembly.GetCallingAssembly();
+
+        if (!RegisteredMods.TryGetValue(caller, out ModMetadata metadata)) return false;
+
+        if (metadata.OptionHolder is not null)
         {
-            ModPlugin.Assembly = typeof(Registry).Assembly;
+            ServerOptions.RemoveOptionSource(metadata.OptionHolder);
         }
 
-        return RegisteredMods.Remove(Assembly.GetCallingAssembly());
+        return RegisteredMods.Remove(caller);
     }
 
-    internal static string GetModId(this Assembly assembly) =>
-        RegisteredMods.TryGetValue(assembly, out ModMetadata metadata)
-            ? metadata.ModId
-            : "unknown";
+    internal static BepInPlugin GetModData(Assembly caller)
+    {
+        return RegisteredMods.TryGetValue(caller, out ModMetadata metadata)
+            ? metadata.Plugin
+            : throw new ModNotFoundException($"Could not find mod for assembly: {caller.FullName}");
+    }
 
-    internal static string GetModName(this Assembly assembly) =>
-        RegisteredMods.TryGetValue(assembly, out ModMetadata metadata)
-            ? metadata.ModName
-            : "Unknown Mod";
-
-    internal static Version GetModVersion(this Assembly assembly) =>
-        RegisteredMods.TryGetValue(assembly, out ModMetadata metadata)
-            ? metadata.ModVersion
-            : new Version(0, 0);
-
-    internal static Type? GetOptionHolder(this Assembly assembly) =>
-        RegisteredMods.TryGetValue(assembly, out ModMetadata metadata)
-            ? metadata.OptionHolder
-            : null;
+    internal static LogUtils.Logger GetModLogger(Assembly caller)
+    {
+        return RegisteredMods.TryGetValue(caller, out ModMetadata metadata)
+            ? metadata.Logger
+            : throw new ModNotFoundException($"Could not find mod for assembly: {caller.FullName}");
+    }
 
     private sealed record ModMetadata
     {
-        public string ModId { get; }
-        public string ModName { get; }
-        public Version ModVersion { get; }
-
+        public BepInPlugin Plugin { get; }
         public Type? OptionHolder { get; }
 
-        public ModMetadata(BaseUnityPlugin plugin, Type? optionHolder)
-            : this(plugin.Info.Metadata, optionHolder)
+        public LogUtils.Logger Logger { get; }
+
+        public ModMetadata(BaseUnityPlugin plugin, Type? optionHolder, LogUtils.Logger? logger = null)
+            : this(plugin.Info.Metadata, optionHolder, logger)
         {
         }
 
-        public ModMetadata(BepInPlugin metadata, Type? optionHolder)
+        public ModMetadata(BepInPlugin plugin, Type? optionHolder, LogUtils.Logger? logger = null)
         {
-            ModId = metadata.GUID;
-            ModName = metadata.Name;
-            ModVersion = metadata.Version;
-
+            Plugin = plugin;
             OptionHolder = optionHolder;
+
+            Logger = logger ?? new ModLogger(plugin);
+        }
+    }
+
+    /// <summary>
+    ///     The exception that is thrown when a ModLib method is called from an unregistered mod assembly.
+    /// </summary>
+    public sealed class ModNotFoundException : InvalidOperationException
+    {
+        /// <summary>
+        ///     Initializes a new instance of the <see cref="ModNotFoundException"/> class.
+        /// </summary>
+        public ModNotFoundException()
+        {
+        }
+
+        /// <summary>
+        ///     Initializes a new instance of the <see cref="ModNotFoundException"/> class with a specified error message.
+        /// </summary>
+        /// <inheritdoc/>
+        public ModNotFoundException(string message)
+            : base(message + " (Did you remember to register your mod before calling this method?)")
+        {
+        }
+
+        /// <summary>
+        ///     Initializes a new instance of the <see cref="ModNotFoundException"/> class with a specified error message
+        ///     and a reference to the inner exception that is the cause of this exception.
+        /// </summary>
+        /// <inheritdoc/>
+        public ModNotFoundException(string message, Exception innerException)
+            : base(message + " (Did you remember to register your mod before calling this method?)", innerException)
+        {
         }
     }
 }

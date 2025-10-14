@@ -10,12 +10,32 @@ public static class MeadowHooks
     /// <summary>
     ///     Applies all Rain Meadow-specific hooks to the game.
     /// </summary>
-    public static void AddHooks() => MatchmakingManager.OnLobbyJoined += JoinLobbyHook;
+    public static void AddHooks()
+    {
+        On.RainWorldGame.Update += GameUpdateHook;
+
+        MatchmakingManager.OnLobbyJoined += JoinLobbyHook;
+    }
 
     /// <summary>
     ///     Removes all Rain Meadow-specific hooks from the game.
     /// </summary>
-    public static void RemoveHooks() => MatchmakingManager.OnLobbyJoined -= JoinLobbyHook;
+    public static void RemoveHooks()
+    {
+        On.RainWorldGame.Update -= GameUpdateHook;
+
+        MatchmakingManager.OnLobbyJoined -= JoinLobbyHook;
+    }
+
+    /// <summary>
+    ///     Updates the RPC manager on every game tick.
+    /// </summary>
+    private static void GameUpdateHook(On.RainWorldGame.orig_Update orig, RainWorldGame self)
+    {
+        orig.Invoke(self);
+
+        ModRPCManager.UpdateRPCs();
+    }
 
     /// <summary>
     ///     Requests the owner of the joined online lobby to sync their REMIX options with the player.

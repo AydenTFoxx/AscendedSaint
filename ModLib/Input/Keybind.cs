@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Reflection;
+using BepInEx;
 using RWCustom;
 using UnityEngine;
 
@@ -15,8 +17,6 @@ public sealed record Keybind
     private static readonly List<Keybind> _keybinds = [];
     private static readonly ReadOnlyCollection<Keybind> _readonlyKeybinds = new(_keybinds);
 
-    private static readonly string _modId = ModPlugin.Assembly.GetModId().Split('.', '_', ' ').Last().ToLowerInvariant();
-
     private static global::Options Options => Custom.rainWorld.options;
 
     /// <summary>
@@ -27,7 +27,7 @@ public sealed record Keybind
     /// <summary>
     ///     The name of the mod this Keybind belongs to.
     /// </summary>
-    public string Mod { get; } = ModPlugin.Assembly.GetModName();
+    public string Mod { get; }
 
     /// <summary>
     ///     The user-friendly name of this Keybind.
@@ -49,10 +49,12 @@ public sealed record Keybind
     /// </summary>
     public KeyCode XboxPreset { get; }
 
-    private Keybind(string name, KeyCode keyboardPreset, KeyCode gamepadPreset, KeyCode xboxPreset)
+    private Keybind(string id, string mod, string name, KeyCode keyboardPreset, KeyCode gamepadPreset, KeyCode xboxPreset)
     {
-        Id = $"{_modId}:{name.ToLowerInvariant()}";
+        Id = id;
+        Mod = mod;
         Name = name;
+
         KeyboardPreset = keyboardPreset;
         GamepadPreset = gamepadPreset;
         XboxPreset = xboxPreset;
@@ -105,43 +107,74 @@ public sealed record Keybind
     /// <returns>A read-only list of all registered keybinds.</returns>
     public static IReadOnlyList<Keybind> Keybinds() => _readonlyKeybinds;
 
-    /// <inheritdoc cref="Register(string, KeyCode, KeyCode, KeyCode)"/>
+    /// <inheritdoc cref="Register(string, string, KeyCode, KeyCode, KeyCode)"/>
     public static Keybind Register(string name, KeyCode keyboardPreset, KeyCode gamepadPreset) =>
-        Register(name, keyboardPreset, gamepadPreset, gamepadPreset);
+        Register(null, name, keyboardPreset, gamepadPreset, gamepadPreset);
+
+    /// <inheritdoc cref="Register(string, string, KeyCode, KeyCode, KeyCode)"/>
+    public static Keybind Register(string name, KeyCode keyboardPreset, KeyCode gamepadPreset, KeyCode xboxPreset) =>
+        Register(null, name, keyboardPreset, gamepadPreset, xboxPreset);
+
+    /// <inheritdoc cref="Register(string, string, KeyCode, KeyCode, KeyCode)"/>
+    public static Keybind Register(string? id, string name, KeyCode keyboardPreset, KeyCode gamepadPreset) =>
+        Register(id, name, keyboardPreset, gamepadPreset, gamepadPreset);
 
     /// <summary>
-    ///     Registers a new Keybind to ModLib's keybind registry with the provided arguments.
+    ///     Registers a new Keybind with the provided arguments.
     /// </summary>
-    /// <param name="name">The name of the new Keybind.</param>
+    /// <remarks>
+    ///     If the Improved Input: Extended mod is present, an equivalent <c>PlayerKeybind</c> is also registered to the game.
+    /// </remarks>
+    /// <param name="id">
+    ///     <para>
+    ///         The identifier of this keybind. Must be an unique string not used by any other mod, or yourself.
+    ///     </para>
+    ///     <para>
+    ///         If omitted, an unique identifier is generated with the format <c>"{ModId}.{KeybindName}"</c>
+    ///     </para>
+    /// </param>
+    /// <param name="name">The name of the new Keybind. Will be displayed for players with IIC:E enabled.</param>
     /// <param name="keyboardPreset">The key code for usage by keyboard devices.</param>
     /// <param name="gamepadPreset">The key code for usage by gamepad input devices.</param>
     /// <param name="xboxPreset">The key code for usage by Xbox input devices.</param>
-    /// <returns>The newly registered <see cref="Keybind"/> object.</returns>
-    public static Keybind Register(string name, KeyCode keyboardPreset, KeyCode gamepadPreset, KeyCode xboxPreset)
+    /// <returns>The registered <see cref="Keybind"/> object.</returns>
+    public static Keybind Register(string? id, string name, KeyCode keyboardPreset, KeyCode gamepadPreset, KeyCode xboxPreset)
     {
-        Keybind? gameKeybind = Get($"{_modId}:{name.ToLowerInvariant()}");
+        BepInPlugin plugin = Registry.GetModData(Assembly.GetCallingAssembly());
+
+        id ??= $"{GetModPrefix(plugin)}.{name.ToLowerInvariant()}";
+
+        Keybind? gameKeybind = Get(id);
 
         if (gameKeybind is null)
         {
-            gameKeybind = new(name, keyboardPreset, gamepadPreset, xboxPreset);
+            gameKeybind = new(id, plugin.Name, name, keyboardPreset, gamepadPreset, xboxPreset);
+
+            if (Extras.IsIICEnabled)
+                ImprovedInputHelper.RegisterKeybind(gameKeybind);
 
             _keybinds.Add(gameKeybind);
         }
 
         return gameKeybind;
+
+        static string GetModPrefix(BepInPlugin plugin)
+        {
+            return plugin.GUID.Split('.', '_', ' ').Last().ToLowerInvariant();
+        }
     }
 
     /// <summary>
-    ///     Converts the PlayerKeybind object to an equivalent Keybind instance. If none is found, a new one is registered with the PlayerKeybind's data.
+    ///     Retrieves the equivalent Keybind object of a PlayerKeybind instance. If none is found, a new Keybind is registered using the PlayerKeybind's values as arguments.
     /// </summary>
     /// <param name="self">The PlayerKeybind object to be converted.</param>
     public static implicit operator Keybind(ImprovedInput.PlayerKeybind self)
     {
-        return Get(self.Id) ?? Register(self.Name, self.KeyboardPreset, self.GamepadPreset, self.XboxPreset);
+        return Get(self.Id) ?? new(self.Id, self.Mod, self.Name, self.KeyboardPreset, self.GamepadPreset, self.XboxPreset);
     }
 
     /// <summary>
-    ///     Converts the Keybind object to an equivalent PlayerKeybind instance. If none is found, a new one is registered with the Keybind's data.
+    ///     Retrieves the equivalent PlayerKeybind object registered with the Keybind object. If none is found, a new PlayerKeybind is registered using the Keybind's values as arguments.
     /// </summary>
     /// <param name="self">The Keybind object to be converted.</param>
     public static explicit operator ImprovedInput.PlayerKeybind(Keybind self)

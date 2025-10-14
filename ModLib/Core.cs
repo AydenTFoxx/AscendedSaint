@@ -2,20 +2,27 @@ using System;
 using System.IO;
 using System.Reflection;
 using BepInEx;
-using BepInEx.Logging;
+using LogUtils.Enums;
+using ModLib.Meadow;
 using UnityEngine;
 
 namespace ModLib;
 
 internal static class Core
 {
+    public const string MOD_GUID = "ynhzrfxn.modlib";
     public const string MOD_NAME = "ModLib";
     public const string MOD_VERSION = "1.0.0.0";
 
-    public static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource("ModLib");
+    public static readonly BepInPlugin PluginData = new(MOD_GUID, MOD_NAME, MOD_VERSION);
+
+    public static readonly LogID MyLogID = new(Path.Combine("Logs", "ModLib.log"), LogAccess.FullAccess, true);
+    public static readonly LogUtils.Logger Logger = new ModLogger(PluginData, MyLogID);
 
     private static bool _initialized;
     private static bool _loaderIsUpToDate;
+
+    private static readonly Version _latestLoaderVersion = new("1.0.0.4");
 
     public static void Initialize()
     {
@@ -28,9 +35,31 @@ internal static class Core
         Extras.IsMeadowEnabled = CompatibilityManager.IsRainMeadowEnabled();
         Extras.IsIICEnabled = CompatibilityManager.IsIICEnabled();
 
+        On.GameSession.ctor += Extras.GameSessionHook;
+
+        if (Extras.IsMeadowEnabled)
+        {
+            MeadowHooks.AddHooks();
+        }
+
         if (!_loaderIsUpToDate)
         {
             DeployVersionLoader();
+        }
+    }
+
+    public static void Dispose()
+    {
+        if (!_initialized) return;
+        _initialized = false;
+
+        CompatibilityManager.Clear();
+
+        On.GameSession.ctor -= Extras.GameSessionHook;
+
+        if (Extras.IsMeadowEnabled)
+        {
+            MeadowHooks.RemoveHooks();
         }
     }
 
@@ -38,16 +67,15 @@ internal static class Core
     {
         string targetPath = Path.Combine(Paths.PatcherPluginPath, "ModLib.Loader.dll");
 
-        Version currentVersion = typeof(Core).Assembly.GetName().Version; // For simplicity's sake, the Loader should always be the same version as ModLib itself
         Version? localVersion = null;
 
         if (File.Exists(targetPath))
         {
             localVersion = AssemblyName.GetAssemblyName(targetPath).Version;
 
-            if (localVersion >= currentVersion)
+            if (localVersion >= _latestLoaderVersion)
             {
-                Logger.LogDebug($"Local ModLib patcher is up to date, skipping deploy action. ({localVersion} vs {currentVersion})");
+                Logger.LogDebug($"Local ModLib patcher is up to date, skipping deploy action. ({localVersion} vs {_latestLoaderVersion})");
 
                 _loaderIsUpToDate = true;
                 return;
@@ -65,7 +93,7 @@ internal static class Core
         }
         else
         {
-            Logger.LogInfo($"Updating local ModLib.Loader patcher from {localVersion} to {currentVersion}.");
+            Logger.LogInfo($"Updating local ModLib.Loader patcher from {localVersion} to {_latestLoaderVersion}.");
         }
 
         WriteAssemblyFile(targetPath, block);

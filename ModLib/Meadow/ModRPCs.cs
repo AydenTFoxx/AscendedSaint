@@ -17,7 +17,7 @@ public static class ModRPCs
     {
         ChatLogManager.LogSystemMessage(message);
 
-        Logger.LogMessage($"-> {message}");
+        Core.Logger.LogMessage($"-> {message}");
     }
 
     /// <summary>
@@ -30,13 +30,13 @@ public static class ModRPCs
     {
         if (!MeadowUtils.IsHost)
         {
-            Logger.LogWarning("Player is not host; Cannot sync REMIX options!");
+            Core.Logger.LogWarning("Player is not host; Cannot sync REMIX options!");
 
             rpcEvent.Resolve(new GenericResult.Fail());
             return;
         }
 
-        Logger.LogDebug($"Syncing local REMIX options with client {onlinePlayer}...");
+        Core.Logger.LogDebug($"Syncing local REMIX options with client {onlinePlayer}...");
 
         onlinePlayer.SendRPCEvent(SyncRemixOptions, (OnlineServerOptions)SharedOptions);
     }
@@ -51,16 +51,16 @@ public static class ModRPCs
     {
         if (MeadowUtils.IsHost)
         {
-            Logger.LogWarning("Player is host; Ignoring options sync.");
+            Core.Logger.LogWarning("Player is host; Ignoring options sync.");
 
             rpcEvent.Resolve(new GenericResult.Fail(rpcEvent));
             return;
         }
 
-        Logger.LogDebug($"Received data: {options}");
+        Core.Logger.LogDebug($"Received data: {options}");
 
         SharedOptions.SetOptions(options);
 
-        Logger.LogInfo($"Synced REMIX options! New values are: {SharedOptions}");
+        Core.Logger.LogInfo($"Synced REMIX options! New values are: {SharedOptions}");
     }
 }

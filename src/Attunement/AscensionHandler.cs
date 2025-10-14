@@ -43,7 +43,7 @@ public static class AscensionHandler
         }
         else
         {
-            ModLib.Logger.LogWarning($"{physicalObject} is not a valid ascension target.");
+            Main.Logger.LogWarning($"{physicalObject} is not a valid ascension target.");
             return false;
         }
 
@@ -92,7 +92,7 @@ public static class AscensionHandler
             room.AddObject(new ShockWave(pos, 150f, 0.25f, 20));
         }
 
-        ModLib.Logger.LogDebug($"Spawned {(isRevival ? "revival" : "ascension")} effects at {pos} for {target}.");
+        Main.Logger.LogDebug($"Spawned {(isRevival ? "revival" : "ascension")} effects at {pos} for {target}.");
     }
 
     /// <summary>

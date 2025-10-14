@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using System.Security.Permissions;
 using ModLib.Meadow;
 using ModLib.Options;
@@ -50,7 +51,9 @@ public static class Extras
         }
         catch (Exception ex)
         {
-            Logger.LogError($"Failed to run wrapped action: {action.Method.Name}", ex);
+            LogUtils.Logger logger = Registry.GetModLogger(Assembly.GetCallingAssembly());
+
+            logger.LogError($"Failed to run wrapped action: {action.Method.Name}", ex);
         }
     }
 
@@ -70,7 +73,9 @@ public static class Extras
             }
             catch (Exception ex)
             {
-                Logger.LogError($"Failed to apply IL hook: {action.Method.Name}", ex);
+                LogUtils.Logger logger = Registry.GetModLogger(Assembly.GetCallingAssembly());
+
+                logger.LogError($"Failed to apply IL hook: {action.Method.Name}", ex);
             }
         };
     }
@@ -86,5 +91,32 @@ public static class Extras
         {
             OptionUtils.SharedOptions.RefreshOptions();
         }
+    }
+
+    internal static void WrapAction(Action action, LogUtils.Logger logger)
+    {
+        try
+        {
+            action.Invoke();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError($"Failed to run wrapped action: {action.Method.Name}", ex);
+        }
+    }
+
+    internal static ILContext.Manipulator WrapILHook(Action<ILContext> action, LogUtils.Logger logger)
+    {
+        return (context) =>
+        {
+            try
+            {
+                action.Invoke(context);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError($"Failed to apply IL hook: {action.Method.Name}", ex);
+            }
+        };
     }
 }

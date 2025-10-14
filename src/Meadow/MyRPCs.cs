@@ -19,7 +19,7 @@ public static class MyRPCs
     {
         if (onlineObject is null || onlineObject.apo.realizedObject is not (Creature or Oracle))
         {
-            ModLib.Logger.LogWarning($"Received a request to sync an invalid ascension! Target: {onlineObject}");
+            Main.Logger.LogWarning($"Received a request to sync an invalid ascension! Target: {onlineObject}");
 
             rpcEvent.Resolve(new GenericResult.Fail());
             return;
@@ -41,7 +41,7 @@ public static class MyRPCs
     {
         if (!onlineObject.isMine)
         {
-            ModLib.Logger.LogWarning($"Cannot revive an object I don't own: {onlineObject}");
+            Main.Logger.LogWarning($"Cannot revive an object I don't own: {onlineObject}");
 
             rpcEvent.Resolve(new GenericResult.Fail());
             return;
@@ -57,7 +57,7 @@ public static class MyRPCs
         }
         else
         {
-            ModLib.Logger.LogWarning($"Failed to revive invalid target: {onlineObject}");
+            Main.Logger.LogWarning($"Failed to revive invalid target: {onlineObject}");
 
             rpcEvent.Resolve(new GenericResult.Fail());
         }
@@ -73,7 +73,7 @@ public static class MyRPCs
     {
         if (!MeadowUtils.IsHost)
         {
-            ModLib.Logger.LogWarning("Player is not host; Ignoring removal request.");
+            Main.Logger.LogWarning("Player is not host; Ignoring removal request.");
 
             rpcEvent.Resolve(new GenericResult.Fail());
             return;
@@ -83,7 +83,7 @@ public static class MyRPCs
 
         if (creature is null)
         {
-            ModLib.Logger.LogWarning($"Cannot remove null creature from respawns list!");
+            Main.Logger.LogWarning($"Cannot remove null creature from respawns list!");
 
             rpcEvent.Resolve(new GenericResult.Fail());
             return;

@@ -165,7 +165,7 @@ public static class SaintMechanicsHooks
 
         if (requireKarmaFlower && karmaFlower is null)
         {
-            Logger.LogDebug($"Player has no Karma Flower, ignoring: {physicalObject}");
+            Main.Logger.LogDebug($"Player has no Karma Flower, ignoring: {physicalObject}");
 
             return didAscendCreature;
         }

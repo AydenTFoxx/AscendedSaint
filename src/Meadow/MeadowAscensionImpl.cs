@@ -14,7 +14,7 @@ public class MeadowAscensionImpl : IAscensionImpl
 
         if (onlineObject is null && MeadowUtils.IsOnline)
         {
-            ModLib.Logger.LogWarning("Cannot ascend or revive a null object! Aborting operation.");
+            Main.Logger.LogWarning("Cannot ascend or revive a null object! Aborting operation.");
             return false;
         }
 
@@ -54,7 +54,7 @@ public class MeadowAscensionImpl : IAscensionImpl
 
         if (onlineObject is null && MeadowUtils.IsOnline)
         {
-            ModLib.Logger.LogWarning("Cannot ascend or revive a null object! Aborting operation.");
+            Main.Logger.LogWarning("Cannot ascend or revive a null object! Aborting operation.");
             return false;
         }
 
@@ -134,18 +134,18 @@ public class MeadowAscensionImpl : IAscensionImpl
             switch (result)
             {
                 case GenericResult.Ok:
-                    ModLib.Logger.LogDebug($"Received ownership of {target}? {onlineObject.isMine}; Running revival method...");
+                    Main.Logger.LogDebug($"Received ownership of {target}? {onlineObject.isMine}; Running revival method...");
 
                     revivalMethod.Invoke(target);
                     break;
                 case GenericResult.Fail:
-                    ModLib.Logger.LogInfo($"Could not request the ownership of {target}; Requesting owner to run revival RPC...");
+                    Main.Logger.LogInfo($"Could not request the ownership of {target}; Requesting owner to run revival RPC...");
 
                     onlineObject.owner.SendRPCEvent(MyRPCs.SyncObjectRevival, onlineObject);
                     break;
                 case GenericResult.Error:
                 default:
-                    ModLib.Logger.LogWarning($"Could not revive creature {target}! (Result: {result})");
+                    Main.Logger.LogWarning($"Could not revive creature {target}! (Result: {result})");
                     break;
             }
         };

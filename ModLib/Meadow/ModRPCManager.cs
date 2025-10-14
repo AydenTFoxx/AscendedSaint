@@ -79,7 +79,7 @@ public static class ModRPCManager
             .Then(ResolveRPCEvent)
             .SetTimeout(1000);
 
-        Logger.LogDebug($"Sending RPC event {rpcEvent} to {rpcEvent.to}...");
+        Core.Logger.LogDebug($"Sending RPC event {rpcEvent} to {rpcEvent.to}...");
 
         return rpcEvent;
     }
@@ -111,13 +111,13 @@ public static class ModRPCManager
         switch (result)
         {
             case GenericResult.Ok:
-                Logger.LogInfo($"Successfully delivered RPC {result.referencedEvent} to {result.from}.");
+                Core.Logger.LogInfo($"Successfully delivered RPC {result.referencedEvent} to {result.from}.");
                 break;
             case GenericResult.Fail:
-                Logger.LogWarning($"Could not run RPC {result.referencedEvent} as {result.from}.");
+                Core.Logger.LogWarning($"Could not run RPC {result.referencedEvent} as {result.from}.");
                 break;
             default:
-                Logger.LogWarning($"Failed to deliver RPC {result.referencedEvent} to {result.from}!");
+                Core.Logger.LogWarning($"Failed to deliver RPC {result.referencedEvent} to {result.from}!");
                 break;
         }
 
@@ -153,7 +153,7 @@ public static class ModRPCManager
 
             if (Lifetime < 1)
             {
-                Logger.LogWarning($"RPC event {Source} failed to be delivered; Timed out waiting for response.");
+                Core.Logger.LogWarning($"RPC event {Source} failed to be delivered; Timed out waiting for response.");
 
                 Source.Abort();
 

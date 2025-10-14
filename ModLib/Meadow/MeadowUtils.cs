@@ -41,7 +41,7 @@ public static class MeadowUtils
 
         if (onlineCreature is null or { isAvatar: false })
         {
-            Logger.LogWarning($"Cannot retrieve the online name of invalid target: {onlineCreature}");
+            Core.Logger.LogWarning($"Cannot retrieve the online name of invalid target: {onlineCreature}");
             return null;
         }
 
@@ -52,7 +52,7 @@ public static class MeadowUtils
                 return playerAvatar.Key.id.GetPersonaName();
         }
 
-        Logger.LogWarning($"Failed to retrieve the online name of {onlineCreature}!");
+        Core.Logger.LogWarning($"Failed to retrieve the online name of {onlineCreature}!");
 
         return null;
     }
@@ -102,15 +102,11 @@ public static class MeadowUtils
     /// <param name="callback">The optional callback method to be executed after resolving the request.</param>
     public static void RequestOwnership(OnlinePhysicalObject onlineObject, Action<GenericResult>? callback = null)
     {
-        if (onlineObject is null)
-        {
-            Logger.LogWarning($"Cannot request the ownership of a null object; Aborting operation.");
-            return;
-        }
+        if (!ValidateOwnershipRequest(onlineObject)) return;
 
         try
         {
-            Logger.LogDebug($"Requesting ownership of {onlineObject}...");
+            Core.Logger.LogDebug($"Requesting ownership of {onlineObject}...");
 
             onlineObject.Request();
 
@@ -118,14 +114,44 @@ public static class MeadowUtils
         }
         catch (Exception ex)
         {
-            Logger.LogError($"Failed to request ownership of {onlineObject}!", ex);
+            Core.Logger.LogError($"Failed to request ownership of {onlineObject}!", ex);
 
             callback?.Invoke(new GenericResult.Fail());
         }
 
         void DefaultCallback(GenericResult result)
         {
-            Logger.LogDebug($"Request result: {result} | New ownership: {onlineObject.owner}");
+            Core.Logger.LogDebug($"Request result: {result} | New ownership: {onlineObject.owner}");
         }
+    }
+
+    private static bool ValidateOwnershipRequest(OnlinePhysicalObject onlineObject)
+    {
+        if (onlineObject is null)
+        {
+            Core.Logger.LogWarning($"Cannot request the ownership of a null object; Aborting operation.");
+        }
+        else if (onlineObject.isMine)
+        {
+            Core.Logger.LogWarning($"{onlineObject} is already mine!");
+        }
+        else if (!onlineObject.isTransferable)
+        {
+            Core.Logger.LogWarning($"{onlineObject} cannot be transfered.");
+        }
+        else if (onlineObject.isPending)
+        {
+            Core.Logger.LogWarning($"{onlineObject} has a pending request.");
+        }
+        else if (!onlineObject.currentlyJoinedResource.isAvailable)
+        {
+            Core.Logger.LogWarning($"{onlineObject} is in an unavailable resource.");
+        }
+        else
+        {
+            return true;
+        }
+
+        return false;
     }
 }

@@ -58,7 +58,7 @@ public class Options : OptionInterface
 
     public override void Initialize()
     {
-        ModLib.Logger.LogInfo($"{nameof(Options)}: Initialized REMIX menu interface.");
+        Main.Logger.LogInfo($"{nameof(Options)}: Initialized REMIX menu interface.");
         base.Initialize();
 
         Tabs = new OpTab[2];

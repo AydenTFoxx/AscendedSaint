@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using ModLib;
 using ModLib.Options;
 using MoreSlugcats;
 using RWCustom;
@@ -38,7 +37,7 @@ public static class RevivalFeature
     {
         if (!target.dead)
         {
-            Logger.LogWarning($"{target} cannot be revived, as it's already alive!");
+            Main.Logger.LogWarning($"{target} cannot be revived, as it's already alive!");
             return false;
         }
 
@@ -70,7 +69,7 @@ public static class RevivalFeature
 
         target.Stun(target is Player ? (int)(RevivalStun * 0.5f) : RevivalStun);
 
-        Logger.LogInfo($"{target} was revived!");
+        Main.Logger.LogInfo($"{target} was revived!");
 
         return true;
     }
@@ -84,7 +83,7 @@ public static class RevivalFeature
     {
         if (!CanReviveOracle(oracle))
         {
-            Logger.LogWarning($"Cannot revive oracle {GetOracleName(oracle.ID)}!");
+            Main.Logger.LogWarning($"Cannot revive oracle {GetOracleName(oracle.ID)}!");
             return false;
         }
 
@@ -122,7 +121,7 @@ public static class RevivalFeature
 
         oracle.health = 1f;
 
-        Logger.LogInfo($"{GetOracleName(oracle.ID)} was revived!");
+        Main.Logger.LogInfo($"{GetOracleName(oracle.ID)} was revived!");
 
         return true;
     }
@@ -179,7 +178,7 @@ public static class RevivalFeature
         {
             bool removed = storySession.saveState.respawnCreatures.Remove(ID.spawner);
 
-            Logger.LogDebug($"Removed {creature} ({ID.spawner}) from the respawns list? {removed}");
+            Main.Logger.LogDebug($"Removed {creature} ({ID.spawner}) from the respawns list? {removed}");
         }
     }
 }

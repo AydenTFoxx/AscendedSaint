@@ -12,6 +12,8 @@ namespace ModLib.Options;
 /// </summary>
 public class ServerOptions
 {
+    private static readonly Dictionary<ConfigurableBase, Type> OptionHolders = [];
+
     /// <summary>
     ///     The local holder of REMIX options' values.
     /// </summary>
@@ -22,16 +24,12 @@ public class ServerOptions
     /// </summary>
     public void RefreshOptions()
     {
-        foreach (FieldInfo field in ModPlugin.Assembly.GetOptionHolder()?.GetFields(BindingFlags.Public | BindingFlags.Static) ?? [])
+        foreach (ConfigurableBase configurable in OptionHolders.Keys)
         {
-            if (field.GetValue(null) is ConfigurableBase configurable
-                && Attribute.GetCustomAttribute(field, typeof(ClientOptionAttribute)) is null)
-            {
-                MyOptions[configurable.key] = CastOptionValue(configurable.BoxedValue);
-            }
+            MyOptions[configurable.key] = CastOptionValue(configurable.BoxedValue);
         }
 
-        Logger.LogDebug($"{(Extras.IsOnlineSession ? "Online " : "")}REMIX options are: {this}");
+        Core.Logger.LogDebug($"{(Extras.IsOnlineSession ? "Online " : "")}REMIX options are: {this}");
     }
 
     /// <summary>
@@ -50,11 +48,11 @@ public class ServerOptions
         {
             if (!MyOptions.TryGetValue(pair.Key, out _))
             {
-                Logger.LogWarning($"{nameof(MyOptions)} does not have option \"{pair.Key}\", will not be synced.");
+                Core.Logger.LogWarning($"Unknown key [{pair.Key}], will not be synced.");
                 continue;
             }
 
-            Logger.LogDebug($"Setting key {pair.Key} to {pair.Value}.");
+            Core.Logger.LogDebug($"Setting key {pair.Key} to {pair.Value}.");
 
             MyOptions[pair.Key] = pair.Value;
         }
@@ -65,21 +63,6 @@ public class ServerOptions
     /// </summary>
     /// <returns>A string containing the <see cref="ServerOptions"/>' local values.</returns>
     public override string ToString() => $"[{FormatOptions()}]";
-
-    private string GetOptionAcronym(string optionName) =>
-        string.Concat(optionName.Split('_').Select(s => s.First())).ToUpperInvariant();
-
-    private string FormatOptions()
-    {
-        StringBuilder stringBuilder = new();
-
-        foreach (KeyValuePair<string, int> kvp in MyOptions)
-        {
-            stringBuilder.Append($"{GetOptionAcronym(kvp.Key)}: {kvp.Value}; ");
-        }
-
-        return stringBuilder.ToString().Trim();
-    }
 
     /// <summary>
     ///     Casts the provided object to an equivalent integer value.
@@ -98,10 +81,51 @@ public class ServerOptions
         }
         catch (Exception ex)
         {
-            Logger.LogError($"Failed to cast option value: {value}", ex);
+            Core.Logger.LogError($"Failed to cast option value: {value}");
+            Core.Logger.LogError(ex);
 
             return 0;
         }
+    }
+
+    internal static void AddOptionSource(Type optionSource)
+    {
+        foreach (FieldInfo field in optionSource.GetFields(BindingFlags.Public | BindingFlags.Static))
+        {
+            if (field.GetValue(null) is not ConfigurableBase configurable
+                || Attribute.GetCustomAttribute(field, typeof(ClientOptionAttribute)) is not null)
+            {
+                continue;
+            }
+
+            OptionHolders.Add(configurable, optionSource);
+        }
+    }
+
+    internal static void RemoveOptionSource(Type optionSource)
+    {
+        foreach (KeyValuePair<ConfigurableBase, Type> holder in OptionHolders)
+        {
+            if (holder.Value == optionSource)
+            {
+                OptionHolders.Remove(holder.Key);
+            }
+        }
+    }
+
+    private string GetOptionAcronym(string optionName) =>
+        string.Concat(optionName.Split('_').Select(s => s.First())).ToUpperInvariant();
+
+    private string FormatOptions()
+    {
+        StringBuilder stringBuilder = new();
+
+        foreach (KeyValuePair<string, int> kvp in MyOptions)
+        {
+            stringBuilder.Append($"{GetOptionAcronym(kvp.Key)}: {kvp.Value}; ");
+        }
+
+        return stringBuilder.ToString().Trim();
     }
 }
 

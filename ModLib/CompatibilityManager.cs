@@ -55,6 +55,11 @@ public static class CompatibilityManager
     }
 
     /// <summary>
+    ///     Clears the internal dictionary of cached mods.
+    /// </summary>
+    public static void Clear() => ManagedMods.Clear();
+
+    /// <summary>
     ///     Determines if a given mod is currently enabled.
     /// </summary>
     /// <param name="modID">The ID of the mod to check for.</param>

@@ -1,8 +1,11 @@
-﻿using System.Security.Permissions;
+﻿using System;
+using System.Security.Permissions;
 using AscendedSaint.Attunement;
 using AscendedSaint.Meadow;
 using BepInEx;
 using ModLib;
+using ModLib.Input;
+using UnityEngine;
 
 // Allows access to private members
 #pragma warning disable CS0618
@@ -19,14 +22,16 @@ public class Main : ModPlugin
     public const string MOD_NAME = "Ascended Saint";
     public const string MOD_VERSION = "2.0.0";
 
-    private static readonly Options options = new();
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+
+    internal static new LogUtils.Logger Logger { get; private set; }
+
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
     public Main()
-        : base(options)
+        : base(new Options())
     {
-        Registry.RegisterMod(this, typeof(Options));
-
-        ModLib.Logger.CleanLogFile();
+        Logger = base.Logger;
     }
 
     public override void OnEnable()
@@ -34,6 +39,17 @@ public class Main : ModPlugin
         if (IsModEnabled) return;
 
         base.OnEnable();
+
+        try
+        {
+            Keybind keybind = Keybind.Register("Chaos", KeyCode.A, KeyCode.Joystick1Button0);
+
+            Logger.LogInfo(keybind.IsDown(0));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex);
+        }
 
         AscensionHandler.AscensionImpl = Extras.IsMeadowEnabled
             ? new MeadowAscensionImpl()
@@ -53,6 +69,8 @@ public class Main : ModPlugin
     {
         base.ApplyHooks();
 
+        On.RainWorldGame.Update += GameUpdateHook;
+
         SaintMechanicsHooks.AddHooks();
     }
 
@@ -60,12 +78,14 @@ public class Main : ModPlugin
     {
         base.RemoveHooks();
 
+        On.RainWorldGame.Update -= GameUpdateHook;
+
         SaintMechanicsHooks.RemoveHooks();
     }
 
-    protected override void GameUpdateHook(On.RainWorldGame.orig_Update orig, RainWorldGame self)
+    private static void GameUpdateHook(On.RainWorldGame.orig_Update orig, RainWorldGame self)
     {
-        base.GameUpdateHook(orig, self);
+        orig.Invoke(self);
 
         AscensionHandler.UpdateCooldowns();
     }

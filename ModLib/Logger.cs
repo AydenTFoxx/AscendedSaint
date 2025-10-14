@@ -12,9 +12,10 @@ namespace ModLib;
 /// A custom logger which sends messages to both the game's and this mod's log files.
 /// </summary>
 /// <remarks>The generated logs for this mod can be found at <c>StreamingAssets\Logs\MOD_NAME.log</c></remarks>
+[Obsolete("Superseded by mod-specific logger instances; For a ModLib-specific logger, see Core.Logger instead.")]
 public static class Logger
 {
-    private static string LogPrefix { get; } = ModPlugin.Assembly.GetModName();
+    private static string LogPrefix { get; } = Registry.GetModData(typeof(Logger).Assembly).Name;
 
     private static string LogPath
     {

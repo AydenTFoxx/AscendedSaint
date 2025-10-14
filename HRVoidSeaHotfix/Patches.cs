@@ -22,7 +22,7 @@ public static class Patches
         IL.VoidSea.VoidSeaScene.Update += VoidSeaUpdateILHook;
         IL.VoidSea.VoidSeaScene.VoidSeaTreatment += VoidSeaTreatmentILHook;
 
-        ModLib.Logger.LogDebug($"Successfully applied ({_appliedHooks}/{_totalHooks}) patches to the game.");
+        Main.Logger.LogDebug($"Successfully applied ({_appliedHooks}/{_totalHooks}) patches to the game.");
     }
 
     /// <summary>
@@ -33,7 +33,7 @@ public static class Patches
         IL.VoidSea.VoidSeaScene.Update -= VoidSeaUpdateILHook;
         IL.VoidSea.VoidSeaScene.VoidSeaTreatment -= VoidSeaTreatmentILHook;
 
-        ModLib.Logger.LogDebug($"Removed patches from the game.");
+        Main.Logger.LogDebug($"Removed patches from the game.");
     }
 
     /// <summary>
@@ -66,7 +66,7 @@ public static class Patches
         }
         catch (Exception ex)
         {
-            ModLib.Logger.LogError($"Failed to apply IL hook: {nameof(VoidSeaTreatmentILHook)}", ex);
+            Main.Logger.LogError($"Failed to apply IL hook: {nameof(VoidSeaTreatmentILHook)}", ex);
 
             _appliedHooks--;
         }
@@ -104,7 +104,7 @@ public static class Patches
         }
         catch (Exception ex)
         {
-            ModLib.Logger.LogError($"Failed to apply IL hook: {nameof(VoidSeaTreatmentILHook)}", ex);
+            Main.Logger.LogError($"Failed to apply IL hook: {nameof(VoidSeaTreatmentILHook)}", ex);
 
             _appliedHooks--;
         }

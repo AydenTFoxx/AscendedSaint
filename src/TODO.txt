@@ -1,5 +1,18 @@
-Player sees their own name in the ascension/revival messages, instead of the actual ascended/revived target.
+ModLib:
+    ServerOptions.MyOptions only supports integers for values. In particular, strings are impossible to store.
 
-ModLib's ServerOptions.MyOptions only supports integers for values. In particular, strings are impossible to store.
+    Registry only supports one loaded mod at a time; If multiple mods reference ModLib, the first mod registered is used for metadata purposes.
+        Fixed!
 
-ModLib's Registry only supports one loaded mod at a time; If multiple mods reference ModLib, the first mod registered is used for metadata purposes.
+    Use LogUtils for ModLib's Core.Logger instance; Allow other mods to mirror ModLib's output into their own logs
+        Done? Unsure on how to implement the latter.
+
+    ServerOptions is not synced in an online context; Instead, the client's MyOptions is cleared entirely.
+
+AscendedSaint:
+    Player sees their own name in the ascension/revival messages, instead of the actual ascended/revived target.
+
+    Reviving an online creature causes both the owner and the caller to attempt running the revival method; The creature is not revived.
+
+    Self-ascension is disabled in an online lobby, regardless of the client or host's settings (possibly due to above ServerOptions issue)
+        Ascension effects are also not played; None of the aforementioned issues occur in singleplayer.
