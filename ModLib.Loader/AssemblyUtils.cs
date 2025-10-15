@@ -11,6 +11,14 @@ namespace ModLib.Loader;
 
 internal static class AssemblyUtils
 {
+    private static readonly string[] RootPaths =
+    [
+        Path.Combine("RainWorld_Data", "StreamingAssets", "mods"), // RainWorld_Data\StreamingAssets\mods\
+        Path.Combine("steamapps", "workshop", "content", "312520"), // steamapps\workshop\content\312520\
+        Path.Combine("newest", "plugins"), // newest\plugins\
+        "plugins" // plugins\
+    ];
+
     public static AssemblyCandidate LastFoundAssembly;
 
     /// <summary>
@@ -31,7 +39,7 @@ internal static class AssemblyUtils
                 if (targetPath != null)
                 {
                     Version version = AssemblyName.GetAssemblyName(targetPath).Version;
-                    Patcher.Logger.LogInfo($"Found candidate {targetPath} v{version}");
+                    Patcher.Logger.LogInfo($"Found candidate: [{GetModName(targetPath)}] (v{version})");
 
                     LastFoundAssembly = new AssemblyCandidate(version, targetPath);
 
@@ -49,6 +57,13 @@ internal static class AssemblyUtils
             }
         }
         return target;
+
+        static string? GetModName(string path)
+        {
+            string? folderName = path.Split(RootPaths, StringSplitOptions.RemoveEmptyEntries).ElementAtOrDefault(1);
+
+            return folderName?.Replace(Path.DirectorySeparatorChar, ' ').Trim();
+        }
     }
 
     public static bool HasPath(this AssemblyCandidate candidate, string path) =>

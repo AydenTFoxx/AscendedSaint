@@ -42,7 +42,12 @@ public static class MeadowHooks
     /// </summary>
     private static void JoinLobbyHook(bool ok, string error)
     {
-        if (!ok || MeadowUtils.IsHost) return;
+        if (!ok || MeadowUtils.IsHost)
+        {
+            Core.Logger.LogDebug($"Ok? {ok} | Is Host? {MeadowUtils.IsHost}");
+            Core.Logger.LogDebug($"Error? {error ?? false.ToString()}");
+            return;
+        }
 
         OnlineManager.lobby.owner.SendRPCEvent(ModRPCs.RequestSyncRemixOptions, OnlineManager.mePlayer);
     }

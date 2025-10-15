@@ -1,11 +1,8 @@
-﻿using System;
-using System.Security.Permissions;
+﻿using System.Security.Permissions;
 using AscendedSaint.Attunement;
 using AscendedSaint.Meadow;
 using BepInEx;
 using ModLib;
-using ModLib.Input;
-using UnityEngine;
 
 // Allows access to private members
 #pragma warning disable CS0618
@@ -24,12 +21,11 @@ public class Main : ModPlugin
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
-    internal static new LogUtils.Logger Logger { get; private set; }
+    public static new LogUtils.Logger Logger { get; private set; }
 
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
-    public Main()
-        : base(new Options())
+    public Main() : base(new Options())
     {
         Logger = base.Logger;
     }
@@ -39,17 +35,6 @@ public class Main : ModPlugin
         if (IsModEnabled) return;
 
         base.OnEnable();
-
-        try
-        {
-            Keybind keybind = Keybind.Register("Chaos", KeyCode.A, KeyCode.Joystick1Button0);
-
-            Logger.LogInfo(keybind.IsDown(0));
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex);
-        }
 
         AscensionHandler.AscensionImpl = Extras.IsMeadowEnabled
             ? new MeadowAscensionImpl()

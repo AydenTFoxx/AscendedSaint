@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using BepInEx.Logging;
 using BepInEx.MultiFolderLoader;
@@ -10,6 +12,7 @@ using AssemblyCandidate = (System.Version Version, string Path);
 namespace ModLib.Loader;
 
 public static class Patcher
+
 {
     internal static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource("ModLib.Loader");
 
@@ -25,7 +28,7 @@ public static class Patcher
 
         if (target.Path != null)
         {
-            Logger.LogMessage("Loading latest ModLib DLL: " + target.Path);
+            Logger.LogMessage($"Loading latest ModLib DLL: {FormatPath(target.Path)}");
             Assembly.LoadFrom(target.Path);
         }
         else
@@ -33,7 +36,14 @@ public static class Patcher
             Logger.LogInfo("No ModLib assembly found.");
         }
 
-        yield break;
+        static string FormatPath(string path)
+        {
+            string? result = path.Split(["mods", "312520"], StringSplitOptions.RemoveEmptyEntries).ElementAtOrDefault(1);
+
+            return string.IsNullOrWhiteSpace(result)
+                ? string.Empty
+                : result.Remove(0, 1);
+        }
     }
 
     private static IEnumerable<string> GetSearchPaths()
@@ -46,8 +56,6 @@ public static class Patcher
             if (!AssemblyUtils.LastFoundAssembly.HasPath(mod.PluginsPath))
                 yield return mod.ModDir;
         }
-
-        yield break;
     }
 
     public static void Patch(AssemblyDefinition _)

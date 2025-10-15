@@ -10,6 +10,8 @@ public class MeadowAscensionImpl : IAscensionImpl
 {
     public bool TryAscendCreature(Creature target, Player caller)
     {
+        if (!caller.IsLocal()) return false;
+
         OnlinePhysicalObject? onlineObject = target.abstractPhysicalObject.GetOnlineObject();
 
         if (onlineObject is null && MeadowUtils.IsOnline)
@@ -50,6 +52,8 @@ public class MeadowAscensionImpl : IAscensionImpl
 
     public bool TryAscendOracle(Oracle target, Player caller)
     {
+        if (!caller.IsLocal()) return false;
+
         OnlinePhysicalObject? onlineObject = target.abstractPhysicalObject.GetOnlineObject();
 
         if (onlineObject is null && MeadowUtils.IsOnline)

@@ -12,12 +12,12 @@ namespace ModLib.Input;
 /// <summary>
 ///     An immutable representation of a player keybind, compatible with ImprovedInput's PlayerKeybind object.
 /// </summary>
-public sealed record Keybind
+public record Keybind
 {
     private static readonly List<Keybind> _keybinds = [];
     private static readonly ReadOnlyCollection<Keybind> _readonlyKeybinds = new(_keybinds);
 
-    private static global::Options Options => Custom.rainWorld.options;
+    private static global::Options? Options => Custom.rainWorld?.options;
 
     /// <summary>
     ///     The unique identifier of this Keybind.
@@ -69,7 +69,7 @@ public sealed record Keybind
     {
         ValidatePlayerNumber(playerNumber);
 
-        return Options.controls[playerNumber].controlPreference == global::Options.ControlSetup.ControlToUse.SPECIFIC_GAMEPAD
+        return Options?.controls[playerNumber].controlPreference == global::Options.ControlSetup.ControlToUse.SPECIFIC_GAMEPAD
             ? UnityEngine.Input.GetKey(GamepadPreset)
             : UnityEngine.Input.GetKey(KeyboardPreset);
     }
@@ -83,7 +83,7 @@ public sealed record Keybind
     {
         ValidatePlayerNumber(playerNumber);
 
-        return Options.controls[playerNumber].controlPreference == global::Options.ControlSetup.ControlToUse.SPECIFIC_GAMEPAD
+        return Options?.controls[playerNumber].controlPreference == global::Options.ControlSetup.ControlToUse.SPECIFIC_GAMEPAD
             ? UnityEngine.Input.GetKeyDown(GamepadPreset)
             : UnityEngine.Input.GetKeyDown(KeyboardPreset);
     }
@@ -140,7 +140,7 @@ public sealed record Keybind
     /// <returns>The registered <see cref="Keybind"/> object.</returns>
     public static Keybind Register(string? id, string name, KeyCode keyboardPreset, KeyCode gamepadPreset, KeyCode xboxPreset)
     {
-        BepInPlugin plugin = Registry.GetModData(Assembly.GetCallingAssembly());
+        BepInPlugin plugin = Registry.GetMod(Assembly.GetCallingAssembly()).Plugin;
 
         id ??= $"{GetModPrefix(plugin)}.{name.ToLowerInvariant()}";
 
@@ -184,7 +184,7 @@ public sealed record Keybind
 
     private static void ValidatePlayerNumber(int playerNumber)
     {
-        if (playerNumber < 0 || playerNumber >= Options.controls.Length)
+        if (playerNumber < 0 || playerNumber >= Options?.controls?.Length)
         {
             throw new ArgumentOutOfRangeException(nameof(playerNumber), $"Player number {playerNumber} is not valid.");
         }

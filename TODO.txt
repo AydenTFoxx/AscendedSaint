@@ -6,8 +6,11 @@ ModLib:
 
     Use LogUtils for ModLib's Core.Logger instance; Allow other mods to mirror ModLib's output into their own logs
         Done? Unsure on how to implement the latter.
+        Done!
 
     ServerOptions is not synced in an online context; Instead, the client's MyOptions is cleared entirely.
+
+    Core.PatchLoader._latestPatcherVersion could be assigned at compile-time, somehow. Would help a lot with not forgetting to change it after an update.
 
 AscendedSaint:
     Player sees their own name in the ascension/revival messages, instead of the actual ascended/revived target.
@@ -15,4 +18,5 @@ AscendedSaint:
     Reviving an online creature causes both the owner and the caller to attempt running the revival method; The creature is not revived.
 
     Self-ascension is disabled in an online lobby, regardless of the client or host's settings (possibly due to above ServerOptions issue)
-        Ascension effects are also not played; None of the aforementioned issues occur in singleplayer.
+    Ascension effects are also not played; None of the aforementioned issues occur in singleplayer.
+        A potential fix has been provided; Playtest is pending.

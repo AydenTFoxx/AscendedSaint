@@ -38,7 +38,7 @@ public static class ModRPCs
 
         Core.Logger.LogDebug($"Syncing local REMIX options with client {onlinePlayer}...");
 
-        onlinePlayer.SendRPCEvent(SyncRemixOptions, (OnlineServerOptions)SharedOptions);
+        onlinePlayer.SendRPCEvent(SyncRemixOptions, new OnlineServerOptions() { MyOptions = SharedOptions.MyOptions });
     }
 
     /// <summary>

@@ -2,7 +2,6 @@ using System;
 using System.Reflection;
 using System.Security.Permissions;
 using ModLib.Meadow;
-using ModLib.Options;
 using MonoMod.Cil;
 
 // Allows access to private members
@@ -51,7 +50,7 @@ public static class Extras
         }
         catch (Exception ex)
         {
-            LogUtils.Logger logger = Registry.GetModLogger(Assembly.GetCallingAssembly());
+            LogUtils.Logger logger = Registry.GetMod(Assembly.GetCallingAssembly()).Logger;
 
             logger.LogError($"Failed to run wrapped action: {action.Method.Name}", ex);
         }
@@ -73,24 +72,11 @@ public static class Extras
             }
             catch (Exception ex)
             {
-                LogUtils.Logger logger = Registry.GetModLogger(Assembly.GetCallingAssembly());
+                LogUtils.Logger logger = Registry.GetMod(Assembly.GetCallingAssembly()).Logger;
 
                 logger.LogError($"Failed to apply IL hook: {action.Method.Name}", ex);
             }
         };
-    }
-
-    /// <summary>
-    ///     Refreshes the local <see cref="OptionUtils.SharedOptions"/> instance with the host player's REMIX options.
-    /// </summary>
-    internal static void GameSessionHook(On.GameSession.orig_ctor orig, GameSession self, RainWorldGame game)
-    {
-        orig.Invoke(self, game);
-
-        if (IsHostPlayer)
-        {
-            OptionUtils.SharedOptions.RefreshOptions();
-        }
     }
 
     internal static void WrapAction(Action action, LogUtils.Logger logger)

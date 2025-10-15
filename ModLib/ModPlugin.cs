@@ -1,5 +1,8 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Reflection;
 using BepInEx;
+using LogUtils;
+using LogUtils.Enums;
 
 namespace ModLib;
 
@@ -18,13 +21,16 @@ public abstract class ModPlugin : BaseUnityPlugin
     /// <summary>
     ///     The custom logger instance for this mod.
     /// </summary>
-    protected new LogUtils.Logger Logger { get; set; }
+    protected new Logger Logger { get; set; }
+
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
     /// <summary>
     ///     Creates a new ModPlugin instance with no REMIX option interface.
     /// </summary>
-    public ModPlugin() : this(null)
+    public ModPlugin()
     {
+        Initialize(Assembly.GetCallingAssembly(), null, null);
     }
 
     /// <summary>
@@ -35,10 +41,39 @@ public abstract class ModPlugin : BaseUnityPlugin
     {
         this.options = options;
 
-        Registry.RegisterMod(this, options?.GetType());
-
-        Logger = Registry.GetModLogger(Assembly.GetCallingAssembly());
+        Initialize(Assembly.GetCallingAssembly(), options?.GetType(), null);
     }
+
+    /// <summary>
+    ///     Creates a new ModPlugin instance with the provided REMIX option interface and logger instance.
+    /// </summary>
+    /// <param name="options">The mod's REMIX option interface class, if any.</param>
+    /// <param name="logger">The logger instance to be used. If null, a new one is created and assigned to this mod.</param>
+    public ModPlugin(OptionInterface? options, Logger? logger)
+    {
+        this.options = options;
+
+        Initialize(Assembly.GetCallingAssembly(), options?.GetType(), logger);
+    }
+
+    private void Initialize(Assembly caller, Type? optionHolder, Logger? logger)
+    {
+        if (logger is null)
+        {
+            LogID myLogID = Registry.ModEntry.CreateLogID(Info.Metadata);
+
+            logger = new Logger(myLogID, LogID.Unity, LogID.BepInEx)
+            {
+                LogSource = base.Logger
+            };
+        }
+
+        Registry.RegisterAssembly(caller, Info.Metadata, optionHolder, logger);
+
+        Logger = logger;
+    }
+
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
     /// <summary>
     ///     Applies hooks to the game, then marks the mod as enabled.
