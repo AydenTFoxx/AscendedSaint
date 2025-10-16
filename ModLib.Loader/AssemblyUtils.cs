@@ -64,7 +64,7 @@ internal static class AssemblyUtils
         candidate.Path != null && candidate.Path.StartsWith(path);
 
     public static string FormatCandidate(AssemblyCandidate candidate, bool includePathToAssembly = false) =>
-        $"v{candidate.Version} from {GetModName(candidate.Path, includePathToAssembly)}";
+        $"v{candidate.Version} {(includePathToAssembly ? "at" : "from")} {GetModName(candidate.Path, includePathToAssembly)}";
 
     private static string? GetModName(string path, bool includePathToAssembly)
     {

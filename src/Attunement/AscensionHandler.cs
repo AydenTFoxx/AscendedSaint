@@ -10,7 +10,7 @@ public static class AscensionHandler
     public static IAscensionImpl? AscensionImpl { get; set; }
 
     private static WeakDictionary<PhysicalObject, AscensionCooldown> _ascensionCooldowns = [];
-    private static readonly float defaultCooldown = Time.fixedDeltaTime * 20f;
+    private static readonly float defaultCooldown = Time.fixedDeltaTime * 200f;
 
     private static bool HasAscensionCooldown(this PhysicalObject self) => self.GetAscensionCooldown() > 0f;
 

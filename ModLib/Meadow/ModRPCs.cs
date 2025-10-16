@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using RainMeadow;
 using static ModLib.Options.OptionUtils;
 
@@ -36,18 +37,23 @@ public static class ModRPCs
             return;
         }
 
+        if (SharedOptions.MyOptions.Count < 1)
+        {
+            SharedOptions.RefreshOptions();
+        }
+
         Core.Logger.LogDebug($"Syncing local REMIX options with client {onlinePlayer}...");
 
-        onlinePlayer.SendRPCEvent(SyncRemixOptions, new OnlineServerOptions() { MyOptions = SharedOptions.MyOptions });
+        onlinePlayer.SendRPCEvent(SyncRemixOptions, new SerializableOptions() { Options = SharedOptions.MyOptions });
     }
 
     /// <summary>
     ///     Overrides the player's local <see cref="SharedOptions"/> instance with the host's own REMIX options.
     /// </summary>
     /// <param name="rpcEvent">The RPC event itself.</param>
-    /// <param name="options">The serialized <see cref="Options.ServerOptions"/> value.</param>
+    /// <param name="options">The serializable values of the host's <see cref="Options.ServerOptions"/> instance.</param>
     [SoftRPCMethod]
-    public static void SyncRemixOptions(RPCEvent rpcEvent, OnlineServerOptions options)
+    public static void SyncRemixOptions(RPCEvent rpcEvent, SerializableOptions options)
     {
         if (MeadowUtils.IsHost)
         {
@@ -57,10 +63,25 @@ public static class ModRPCs
             return;
         }
 
-        Core.Logger.LogDebug($"Received data: {options}");
-
-        SharedOptions.SetOptions(options);
+        SharedOptions.SetOptions(options.Options);
 
         Core.Logger.LogInfo($"Synced REMIX options! New values are: {SharedOptions}");
+    }
+
+    /// <summary>
+    ///     A serializable wrapper around a <see cref="Options.ServerOptions"/>' local options dictionary.
+    /// </summary>
+    public record SerializableOptions : Serializer.ICustomSerializable
+    {
+        /// <summary>
+        ///     The internally held option values;
+        /// </summary>
+        public Dictionary<string, int> Options = [];
+
+        /// <summary>
+        ///     Serializes or de-serializes the referenced local options, using the provided serializer object.
+        /// </summary>
+        /// <param name="serializer">The serializer for usage by this method.</param>
+        public void CustomSerialize(Serializer serializer) => serializer.Serialize(ref Options);
     }
 }

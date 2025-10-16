@@ -17,16 +17,17 @@ public class ServerOptions
     /// <summary>
     ///     The local holder of REMIX options' values.
     /// </summary>
-    public Dictionary<string, int> MyOptions = [];
+    public Dictionary<string, int> MyOptions { get; } = [];
 
     /// <summary>
     ///     Sets the local holder's values to those from the REMIX option interface.
     /// </summary>
-    public void RefreshOptions()
+    /// <param name="resetValues">If true, all values are set to the default underlying value (<c>0</c>) instead.</param>
+    public void RefreshOptions(bool resetValues = false)
     {
         foreach (ConfigurableBase configurable in OptionHolders.Keys)
         {
-            MyOptions[configurable.key] = CastOptionValue(configurable.BoxedValue);
+            MyOptions[configurable.key] = resetValues ? default : CastOptionValue(configurable.BoxedValue);
         }
 
         Core.Logger.LogDebug($"{(Extras.IsOnlineSession ? "Online " : "")}REMIX options are: {this}");

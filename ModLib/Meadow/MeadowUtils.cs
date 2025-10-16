@@ -112,7 +112,11 @@ public static class MeadowUtils
     /// <param name="callback">The optional callback method to be executed after resolving the request.</param>
     public static void RequestOwnership(OnlinePhysicalObject onlineObject, Action<GenericResult>? callback = null)
     {
-        if (!ValidateOwnershipRequest(onlineObject)) return;
+        if (!ValidateOwnershipRequest(onlineObject))
+        {
+            callback?.Invoke(new GenericResult.Fail());
+            return;
+        }
 
         try
         {
@@ -126,7 +130,7 @@ public static class MeadowUtils
         {
             Core.Logger.LogError($"Failed to request ownership of {onlineObject}!", ex);
 
-            callback?.Invoke(new GenericResult.Fail());
+            callback?.Invoke(new GenericResult.Error());
         }
 
         void DefaultCallback(GenericResult result)

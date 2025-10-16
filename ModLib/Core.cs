@@ -27,8 +27,17 @@ internal static class Core
 
     private static bool _initialized;
 
+    private static readonly WeakReference<GameSession> LastGameSession = new(null!);
+
     static Core()
     {
+        if (!Directory.Exists(LogsPath))
+        {
+            Directory.CreateDirectory(LogsPath);
+        }
+
+        MyLogID.Properties.ReadOnly = false;
+
         if (!MyLogID.Properties.ReadOnly)
         {
             MyLogID.Properties.AltFilename = new LogUtils.LogFilename("ynhzrfxn.modlib", ".log");
@@ -36,8 +45,8 @@ internal static class Core
             MyLogID.Properties.ShowCategories.IsEnabled = true;
             MyLogID.Properties.ShowLogTimestamp.IsEnabled = true;
 
-            MyLogID.Properties.IntroMessage = $"# Initialized ModLib successfully.{Environment.NewLine}";
-            MyLogID.Properties.OutroMessage = $"{Environment.NewLine}# Disabled ModLib successfully.";
+            MyLogID.Properties.IntroMessage = $"# Initialized ModLib successfully.";
+            MyLogID.Properties.OutroMessage = $"# Disabled ModLib successfully.";
 
             MyLogID.Properties.AddTag("ModLib");
         }
@@ -54,11 +63,13 @@ internal static class Core
         Extras.IsMeadowEnabled = CompatibilityManager.IsRainMeadowEnabled();
         Extras.IsIICEnabled = CompatibilityManager.IsIICEnabled();
 
-        On.GameSession.ctor += GameSessionHook;
-
         if (Extras.IsMeadowEnabled)
         {
             MeadowHooks.AddHooks();
+        }
+        else
+        {
+            On.GameSession.ctor += GameSessionHook;
         }
 
         PatchLoader.Initialize();
@@ -72,11 +83,13 @@ internal static class Core
 
         CompatibilityManager.Clear();
 
-        On.GameSession.ctor -= GameSessionHook;
-
         if (Extras.IsMeadowEnabled)
         {
             MeadowHooks.RemoveHooks();
+        }
+        else
+        {
+            On.GameSession.ctor -= GameSessionHook;
         }
     }
 
@@ -84,9 +97,11 @@ internal static class Core
     {
         orig.Invoke(self, game);
 
-        if (Extras.IsHostPlayer)
+        if (!LastGameSession.TryGetTarget(out _))
         {
             OptionUtils.SharedOptions.RefreshOptions();
+
+            LastGameSession.SetTarget(self);
         }
     }
 
@@ -94,7 +109,7 @@ internal static class Core
     {
         private const string TARGET_DLL = "ModLib.Loader.dll";
 
-        private static readonly Version _latestLoaderVersion = new("1.0.0.6");
+        private static readonly Version _latestLoaderVersion = new("1.0.0.7");
 
         private static readonly string _targetPath = Path.Combine(Paths.PatcherPluginPath, TARGET_DLL);
 
@@ -208,7 +223,7 @@ internal static class Core
 
             try
             {
-                File.AppendAllText(path, "modlib.loader.dll");
+                File.AppendAllText(path, "modlib.loader.dll" + Environment.NewLine);
 
                 Logger.LogInfo("Added ModLib.Loader to the game's whitelist.");
             }

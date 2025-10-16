@@ -1,3 +1,5 @@
+using System;
+using ModLib.Options;
 using RainMeadow;
 
 namespace ModLib.Meadow;
@@ -7,14 +9,15 @@ namespace ModLib.Meadow;
 /// </summary>
 public static class MeadowHooks
 {
+    private static readonly WeakReference<GameSession> LastGameSession = new(null!);
+
     /// <summary>
     ///     Applies all Rain Meadow-specific hooks to the game.
     /// </summary>
     public static void AddHooks()
     {
+        On.GameSession.ctor += GameSessionHook;
         On.RainWorldGame.Update += GameUpdateHook;
-
-        MatchmakingManager.OnLobbyJoined += JoinLobbyHook;
     }
 
     /// <summary>
@@ -22,9 +25,24 @@ public static class MeadowHooks
     /// </summary>
     public static void RemoveHooks()
     {
+        On.GameSession.ctor -= GameSessionHook;
         On.RainWorldGame.Update -= GameUpdateHook;
+    }
 
-        MatchmakingManager.OnLobbyJoined -= JoinLobbyHook;
+    private static void GameSessionHook(On.GameSession.orig_ctor orig, GameSession self, RainWorldGame game)
+    {
+        orig.Invoke(self, game);
+
+        if (LastGameSession.TryGetTarget(out _)) return;
+
+        OptionUtils.SharedOptions.RefreshOptions(!MeadowUtils.IsHost);
+
+        if (!MeadowUtils.IsHost)
+        {
+            OnlineManager.lobby.owner.SendRPCEvent(ModRPCs.RequestSyncRemixOptions, OnlineManager.mePlayer);
+        }
+
+        LastGameSession.SetTarget(self);
     }
 
     /// <summary>
@@ -35,20 +53,5 @@ public static class MeadowHooks
         orig.Invoke(self);
 
         ModRPCManager.UpdateRPCs();
-    }
-
-    /// <summary>
-    ///     Requests the owner of the joined online lobby to sync their REMIX options with the player.
-    /// </summary>
-    private static void JoinLobbyHook(bool ok, string error)
-    {
-        if (!ok || MeadowUtils.IsHost)
-        {
-            Core.Logger.LogDebug($"Ok? {ok} | Is Host? {MeadowUtils.IsHost}");
-            Core.Logger.LogDebug($"Error? {error ?? false.ToString()}");
-            return;
-        }
-
-        OnlineManager.lobby.owner.SendRPCEvent(ModRPCs.RequestSyncRemixOptions, OnlineManager.mePlayer);
     }
 }
