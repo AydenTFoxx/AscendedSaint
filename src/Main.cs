@@ -1,4 +1,5 @@
-﻿using System.Security.Permissions;
+﻿using System.IO;
+using System.Security.Permissions;
 using AscendedSaint.Attunement;
 using AscendedSaint.Meadow;
 using BepInEx;
@@ -28,6 +29,13 @@ public class Main : ModPlugin
     public Main() : base(new Options())
     {
         Logger = base.Logger;
+
+        string path = Registry.MyMod.LogID?.Properties.CurrentFilePath ?? Path.Combine(Registry.DefaultLogsPath, "AscendedSaint.log");
+
+        if (File.Exists(path))
+        {
+            File.WriteAllText(path, "");
+        }
     }
 
     public override void OnEnable()

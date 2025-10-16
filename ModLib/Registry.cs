@@ -159,6 +159,7 @@ public static class Registry
             LogID logID = new(SanitizeName(source.Name), DefaultLogsPath, LogAccess.FullAccess, register);
 
             logID.Properties.ShowCategories.IsEnabled = true;
+            logID.Properties.ShowLogTimestamp.IsEnabled = true;
 
             logID.Properties.AddTag("ModLib");
 

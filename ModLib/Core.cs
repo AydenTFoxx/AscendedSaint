@@ -34,12 +34,10 @@ internal static class Core
             MyLogID.Properties.AltFilename = new LogUtils.LogFilename("ynhzrfxn.modlib", ".log");
 
             MyLogID.Properties.ShowCategories.IsEnabled = true;
+            MyLogID.Properties.ShowLogTimestamp.IsEnabled = true;
 
-            MyLogID.Properties.ShowIntroTimestamp = true;
-            MyLogID.Properties.ShowOutroTimestamp = true;
-
-            MyLogID.Properties.IntroMessage = "# Initialized ModLib successfully.";
-            MyLogID.Properties.OutroMessage = "# Disabled ModLib successfully.";
+            MyLogID.Properties.IntroMessage = $"# Initialized ModLib successfully.{Environment.NewLine}";
+            MyLogID.Properties.OutroMessage = $"{Environment.NewLine}# Disabled ModLib successfully.";
 
             MyLogID.Properties.AddTag("ModLib");
         }
@@ -96,7 +94,7 @@ internal static class Core
     {
         private const string TARGET_DLL = "ModLib.Loader.dll";
 
-        private static readonly Version _latestLoaderVersion = new("1.0.0.5");
+        private static readonly Version _latestLoaderVersion = new("1.0.0.6");
 
         private static readonly string _targetPath = Path.Combine(Paths.PatcherPluginPath, TARGET_DLL);
 
@@ -176,7 +174,7 @@ internal static class Core
 
             while (!reader.EndOfStream)
             {
-                string entry = reader.ReadLine();
+                string entry = reader.ReadLine().ToLowerInvariant();
 
                 if (entry != "modlib.loader.dll")
                 {
@@ -197,7 +195,7 @@ internal static class Core
 
             while (!reader.EndOfStream)
             {
-                string entry = reader.ReadLine();
+                string entry = reader.ReadLine().ToLowerInvariant();
 
                 if (entry == "modlib.loader.dll")
                 {

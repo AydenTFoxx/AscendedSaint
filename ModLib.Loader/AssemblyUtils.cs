@@ -39,9 +39,10 @@ internal static class AssemblyUtils
                 if (targetPath != null)
                 {
                     Version version = AssemblyName.GetAssemblyName(targetPath).Version;
-                    Patcher.Logger.LogInfo($"Found candidate: [{GetModName(targetPath)}] (v{version})");
 
                     LastFoundAssembly = new AssemblyCandidate(version, targetPath);
+
+                    Patcher.Logger.LogInfo($"Found candidate: {FormatCandidate(LastFoundAssembly)}");
 
                     if (target.Path == null || target.Version < version)
                         target = LastFoundAssembly;
@@ -57,15 +58,22 @@ internal static class AssemblyUtils
             }
         }
         return target;
-
-        static string? GetModName(string path)
-        {
-            string? folderName = path.Split(RootPaths, StringSplitOptions.RemoveEmptyEntries).ElementAtOrDefault(1);
-
-            return folderName?.Replace(Path.DirectorySeparatorChar, ' ').Trim();
-        }
     }
 
     public static bool HasPath(this AssemblyCandidate candidate, string path) =>
         candidate.Path != null && candidate.Path.StartsWith(path);
+
+    public static string FormatCandidate(AssemblyCandidate candidate, bool includePathToAssembly = false) =>
+        $"v{candidate.Version} from {GetModName(candidate.Path, includePathToAssembly)}";
+
+    private static string? GetModName(string path, bool includePathToAssembly)
+    {
+        string? result = path.Split(includePathToAssembly ? ["mods", "312520"] : RootPaths, StringSplitOptions.RemoveEmptyEntries).ElementAtOrDefault(1);
+
+        return string.IsNullOrWhiteSpace(result)
+                ? string.Empty
+                : includePathToAssembly
+                    ? result.Remove(0, 1)
+                    : result.Replace(Path.DirectorySeparatorChar, ' ').Trim();
+    }
 }

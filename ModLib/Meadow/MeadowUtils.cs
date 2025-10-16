@@ -29,6 +29,16 @@ public static class MeadowUtils
     public static bool IsHost => !IsOnline || OnlineManager.lobby.isOwner;
 
     /// <summary>
+    ///     Determines if the given physical object belongs to the client.
+    /// </summary>
+    /// <remarks>
+    ///     If the current game session is not online, this always returns <c>true</c>.
+    /// </remarks>
+    /// <param name="physicalObject">The object itself.</param>
+    /// <returns><c>true</c> if the physical object belongs to this client (or the current game session is not online), <c>false</c> otherwise.</returns>
+    public static bool IsMine(PhysicalObject physicalObject) => physicalObject.IsLocal();
+
+    /// <summary>
     ///     Obtains the online name of the given player.
     /// </summary>
     /// <param name="self">The player to be queried.</param>

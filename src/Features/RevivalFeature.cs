@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Linq;
+using AscendedSaint.Attunement;
 using ModLib.Options;
 using MoreSlugcats;
 using RWCustom;
@@ -10,6 +12,13 @@ public static class RevivalFeature
     private static float TargetHealth => OptionUtils.GetOptionValue(Options.REVIVAL_HEALTH_FACTOR) * 0.01f;
     private static int RevivalStun => OptionUtils.GetOptionValue(Options.REVIVAL_STUN_DURATION);
 
+    private static void ReactToRevival(this OracleBehavior oracleBehavior, string reactionString)
+    {
+        oracleBehavior.dialogBox.Interrupt("...", 100);
+
+        oracleBehavior.dialogBox.NewMessage(reactionString, 40);
+    }
+
     /// <summary>
     /// Obtains an iterator's full name based on its ID.
     /// </summary>
@@ -19,9 +28,9 @@ public static class RevivalFeature
     public static string GetOracleName(Oracle.OracleID oracleID) =>
         oracleID == Oracle.OracleID.SL
         ? "Looks to the Moon"
-        : oracleID == MoreSlugcatsEnums.OracleID.CL
+        : oracleID == MoreSlugcatsEnums.OracleID.CL // Oracle.OracleID.SS is not checked since FP is not ascendable outside Saint's campaign
             ? "Five Pebbles"
-            : oracleID == MoreSlugcatsEnums.OracleID.ST
+            : oracleID == MoreSlugcatsEnums.OracleID.ST // Should not occur under normal circumstances, but just for the funnies
                 ? "Sliver of Straw" // Would you de-ascend Sliver of Straw?
                 : $"Unknown Iterator ({oracleID})";
 
@@ -81,17 +90,26 @@ public static class RevivalFeature
     /// <remarks>But why would you?</remarks>
     public static bool ReviveOracle(Oracle oracle)
     {
-        if (!CanReviveOracle(oracle))
-        {
-            Main.Logger.LogWarning($"Cannot revive oracle {GetOracleName(oracle.ID)}!");
-            return false;
-        }
+        if (!CanReviveOracle(oracle)) return false;
 
         StoryGameSession storySession = oracle.room.game.GetStorySession;
 
         if (oracle.ID == MoreSlugcatsEnums.OracleID.CL)
         {
             Custom.Log("De-Ascend saint pebbles");
+
+            if (oracle.oracleBehavior is CLOracleBehavior pebblesBehavior)
+            {
+                pebblesBehavior.Pain();
+
+                pebblesBehavior.ReactToRevival(AscensionStrings.RevivePebbles);
+
+                pebblesBehavior.halcyon = oracle.room.physicalObjects.SelectMany(objs => objs.Where(obj => obj is HalcyonPearl)).FirstOrDefault() as HalcyonPearl;
+
+                Main.Logger.LogDebug($"Halcyon porl: {pebblesBehavior.halcyon}");
+            }
+
+            storySession.saveState.miscWorldSaveData.halcyonStolen = false;
 
             storySession.saveState.deathPersistentSaveData.ripPebbles = false;
         }
@@ -112,7 +130,14 @@ public static class RevivalFeature
 
             oracle.mySwarmers.AddRange(myNewSwarmers);
 
-            (oracle.oracleBehavior as SLOracleBehavior)?.State.neuronsLeft = 7;
+            if (oracle.oracleBehavior is SLOracleBehavior moonBehavior)
+            {
+                moonBehavior.State.neuronsLeft = 7;
+
+                moonBehavior.Pain();
+
+                moonBehavior.ReactToRevival(AscensionStrings.ReviveMoon);
+            }
 
             storySession.saveState.deathPersistentSaveData.ripMoon = false;
         }
@@ -126,19 +151,25 @@ public static class RevivalFeature
         return true;
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0046:Convert to conditional expression", Justification = "Not as readable as a conditional expression")]
     private static bool CanReviveOracle(Oracle oracle)
     {
         if (oracle.room?.game.session is not StoryGameSession storyGame) return false;
 
-        if (oracle.ID == MoreSlugcatsEnums.OracleID.CL)
-            return storyGame.saveState.deathPersistentSaveData.ripPebbles;
+        bool? canRevive = oracle.ID == MoreSlugcatsEnums.OracleID.CL
+            ? storyGame.saveState.deathPersistentSaveData.ripPebbles
+            : oracle.ID == Oracle.OracleID.SL
+                ? storyGame.saveState.deathPersistentSaveData.ripMoon
+                    || oracle.oracleBehavior is SLOracleBehavior { State.neuronsLeft: 0 }
+                : null;
 
-        if (oracle.ID == Oracle.OracleID.SL)
-            return storyGame.saveState.deathPersistentSaveData.ripMoon
-            || oracle.oracleBehavior is SLOracleBehavior { State.neuronsLeft: 0 };
+        if (canRevive is null)
+        {
+            canRevive = OptionUtils.IsOptionEnabled(Options.CUSTOM_ORACLE_REVIVAL) && !oracle.Consious;
 
-        return OptionUtils.IsOptionEnabled(Options.CUSTOM_ORACLE_REVIVAL) && !oracle.Consious;
+            Main.Logger.LogWarning($"Attempting to revive unknown oracle! ({oracle.ID})! Will revive? {canRevive}");
+        }
+
+        return canRevive.Value;
     }
 
     /// <summary>

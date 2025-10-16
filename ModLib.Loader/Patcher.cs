@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using BepInEx.Logging;
 using BepInEx.MultiFolderLoader;
@@ -28,21 +26,13 @@ public static class Patcher
 
         if (target.Path != null)
         {
-            Logger.LogMessage($"Loading latest ModLib DLL: {FormatPath(target.Path)}");
+            Logger.LogMessage($"Loading latest ModLib DLL: {AssemblyUtils.FormatCandidate(target, true)}");
+
             Assembly.LoadFrom(target.Path);
         }
         else
         {
             Logger.LogInfo("No ModLib assembly found.");
-        }
-
-        static string FormatPath(string path)
-        {
-            string? result = path.Split(["mods", "312520"], StringSplitOptions.RemoveEmptyEntries).ElementAtOrDefault(1);
-
-            return string.IsNullOrWhiteSpace(result)
-                ? string.Empty
-                : result.Remove(0, 1);
         }
     }
 

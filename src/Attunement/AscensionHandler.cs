@@ -31,7 +31,7 @@ public static class AscensionHandler
     {
         if (AscensionImpl is null || physicalObject.HasAscensionCooldown()) return false;
 
-        bool result;
+        bool result = false;
 
         if (physicalObject is Creature creature)
         {
@@ -44,7 +44,6 @@ public static class AscensionHandler
         else
         {
             Main.Logger.LogWarning($"{physicalObject} is not a valid ascension target.");
-            return false;
         }
 
         physicalObject.SetAscensionCooldown(defaultCooldown);

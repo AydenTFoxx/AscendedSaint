@@ -12,6 +12,8 @@ ModLib:
 
     Core.PatchLoader._latestPatcherVersion could be assigned at compile-time, somehow. Would help a lot with not forgetting to change it after an update.
 
+    ServerOptions.ToString() should be more descriptive, but not too verbose. Acronyms worked great for single-mod projects, but as a library, either properly display options or abstract it away entirely.
+
 AscendedSaint:
     Player sees their own name in the ascension/revival messages, instead of the actual ascended/revived target.
 

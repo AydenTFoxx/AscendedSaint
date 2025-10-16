@@ -1,4 +1,5 @@
 using ModLib;
+using ModLib.Meadow;
 using ModLib.Options;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
@@ -75,12 +76,12 @@ public static class SaintMechanicsHooks
 
         // Target: bodyChunk.vel += Custom.RNV() * 36f; <-- HERE (Append)
 
-        c.Emit(OpCodes.Ldloc, 21); // bodyChunk
+        c.Emit(OpCodes.Ldloc, 18); // physicalObject
         c.Emit(OpCodes.Ldarg_0); // this
         c.Emit(OpCodes.Ldloc, 15); // flag2 (didAscendCreature)
-        c.EmitDelegate(ApplySaintMechanics); // bodyChunk, this, flag2
+        c.EmitDelegate(ApplySaintMechanics); // physicalObject, this, flag2
         c.Emit(OpCodes.Dup);
-        c.Emit(OpCodes.Stloc, 15); // flag2 = ApplySaintMechanics(bodyChunk, this, flag2);
+        c.Emit(OpCodes.Stloc, 15); // flag2 = ApplySaintMechanics(physicalObject, this, flag2);
         c.Emit(OpCodes.Brtrue, target1); // if (flag2) continue;
 
         // Result:
@@ -148,12 +149,10 @@ public static class SaintMechanicsHooks
         }
     }
 
-    private static bool ApplySaintMechanics(BodyChunk bodyChunk, Player self, bool didAscendCreature)
+    private static bool ApplySaintMechanics(PhysicalObject physicalObject, Player self, bool didAscendCreature)
     {
-        PhysicalObject physicalObject = bodyChunk.owner;
-
-        if (physicalObject is not (Creature or Oracle)
-            || bodyChunk != physicalObject.bodyChunks[0])
+        if ((Extras.IsMeadowEnabled && !MeadowUtils.IsMine(self))
+            || physicalObject is not (Creature or Oracle))
         {
             return didAscendCreature;
         }
