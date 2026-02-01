@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<Title>Generic Modding Library Loader</Title>
+		<AssemblyVersion>1.0.0.7</AssemblyVersion>
+		<FileVersion>1.0.0.7</FileVersion>
+	</PropertyGroup>
+
+    <PropertyGroup>
+		<TargetFramework>net481</TargetFramework>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Reference Include="../lib/BepInEx/core/BepInEx.dll">
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="../lib/BepInEx/patchers/BepInEx.MultiFolderLoader.dll">
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="../lib/RainWorld_Data/Managed/Mono.Cecil.dll">
+			<Private>false</Private>
+		</Reference>
+	</ItemGroup>
+
+	<Target Name="GenerateModLibPatcher" AfterTargets="PostBuildEvent">
+		<ItemGroup>
+			<CopyPlugins Include="$(TargetDir)$(TargetName).dll" />
+		</ItemGroup>
+
+		<Copy SourceFiles="@(CopyPlugins)" DestinationFolder="./patchers/" />
+	</Target>
+
+</Project>

@@ -1,0 +1,19 @@
+{
+  "id": "ynhzrfxn.hr_voidsea_hotfix",
+  "name": "Saint Ascension Hotfix",
+  "version": "1.0",
+  "target_game_version": "v1.11.1",
+  "authors": "YannahTFoxx",
+  "description": "Fixes Saint drowning in the room below the Void Sea.<LINE><LINE>As a bonus, also restores the music tracks that would otherwise play in their ending sequence.",
+  "requirements": [
+    "moreslugcats"
+  ],
+  "requirements_names": [
+    "More Slugcats Expansion"
+  ],
+  "tags": [
+    "Downpour",
+    "Watcher",
+    "Accessibility"
+  ]
+}
