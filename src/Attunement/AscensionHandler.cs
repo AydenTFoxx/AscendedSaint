@@ -1,25 +1,27 @@
 using System.Collections.Generic;
 using System.Linq;
-using ModLib.Generics;
+using AscendedSaint.Attunement.Meadow;
+using ModLib;
+using ModLib.Collections;
 using UnityEngine;
 
 namespace AscendedSaint.Attunement;
 
 public static class AscensionHandler
 {
-    public static IAscensionImpl? AscensionImpl { get; set; }
-
+    private static IAscensionImpl? _ascensionImpl;
     private static WeakDictionary<PhysicalObject, AscensionCooldown> _ascensionCooldowns = [];
-    private static readonly float defaultCooldown = Time.fixedDeltaTime * 200f;
 
-    private static bool HasAscensionCooldown(this PhysicalObject self) => self.GetAscensionCooldown() > 0f;
+    public static float DefaultAscensionCooldown => Time.fixedDeltaTime * 200f;
 
-    private static float GetAscensionCooldown(this PhysicalObject self) =>
+    public static bool HasAscensionCooldown(this PhysicalObject self) => self.GetAscensionCooldown() > 0f;
+
+    public static float GetAscensionCooldown(this PhysicalObject self) =>
         _ascensionCooldowns.TryGetValue(self, out AscensionCooldown result) && !result.IsExpired
             ? result.Duration : 0f;
 
-    private static void SetAscensionCooldown(this PhysicalObject self, float duration) =>
-        _ascensionCooldowns.Add(self, new AscensionCooldown(duration));
+    public static void SetAscensionCooldown(this PhysicalObject self, float duration, bool isRevival = false) =>
+        _ascensionCooldowns[self] = new AscensionCooldown(duration, isRevival);
 
     /// <summary>
     /// Attempts to ascend the given object using the current ascension implementation.
@@ -29,24 +31,22 @@ public static class AscensionHandler
     /// <returns><c>true</c> if the creature was successfully ascended, <c>false</c> otherwise.</returns>
     public static bool TryAscendObject(PhysicalObject physicalObject, Player caller)
     {
-        if (AscensionImpl is null || physicalObject.HasAscensionCooldown()) return false;
+        if (_ascensionImpl is null) return false;
 
         bool result = false;
 
         if (physicalObject is Creature creature)
         {
-            result = AscensionImpl.TryAscendCreature(creature, caller);
+            result = _ascensionImpl.TryAscendCreature(creature, caller);
         }
         else if (physicalObject is Oracle oracle)
         {
-            result = AscensionImpl.TryAscendOracle(oracle, caller);
+            result = _ascensionImpl.TryAscendOracle(oracle, caller);
         }
         else
         {
             Main.Logger.LogWarning($"{physicalObject} is not a valid ascension target.");
         }
-
-        physicalObject.SetAscensionCooldown(defaultCooldown);
 
         return result;
     }
@@ -57,7 +57,7 @@ public static class AscensionHandler
     /// <param name="player">The player to be tested.</param>
     /// <returns>A Karma Flower held by the player, or <c>null</c> if none is found.</returns>
     public static KarmaFlower? GetHeldKarmaFlower(Player player) =>
-        player.grasps.FirstOrDefault(grasp => grasp?.grabbed is KarmaFlower)?.grabbed as KarmaFlower;
+        player.grasps.FirstOrDefault(static grasp => grasp?.grabbed is KarmaFlower)?.grabbed as KarmaFlower;
 
     /// <summary>
     /// Spawns the special effects of Saint's new abilities.
@@ -72,18 +72,14 @@ public static class AscensionHandler
         if (isRevival)
         {
             BodyChunk bodyChunk = target is Creature creature1 ? creature1.mainBodyChunk : target.bodyChunks[0];
-            bool isOracle = target is Oracle;
 
-            float shockWaveSize = isOracle ? 350f : 200;
-            float shockWaveIntensity = isOracle ? 0.75f : 0.5f;
-            int shockWaveLifetime = isOracle ? 24 : 30;
-            float firecrackerPitch = isOracle ? 1.5f : 0.5f;
+            bool isOracle = target is Oracle;
             float markPitch = isOracle ? 0.5f : 1.25f;
 
-            room.AddObject(new ShockWave(pos, shockWaveSize, shockWaveIntensity, shockWaveLifetime));
+            room.AddObject(new ShockWave(pos, isOracle ? 350f : 200, isOracle ? 0.75f : 0.5f, isOracle ? 24 : 30));
             room.AddObject(new Explosion.ExplosionLight(pos, 320f, 1f, 5, Color.white));
 
-            room.PlaySound(SoundID.Firecracker_Bang, bodyChunk, loop: false, 1f, firecrackerPitch + Random.value);
+            room.PlaySound(SoundID.Firecracker_Bang, bodyChunk, loop: false, 1f, (isOracle ? 1.5f : 0.5f) + Random.value);
             room.PlaySound(SoundID.SS_AI_Give_The_Mark_Boom, bodyChunk, loop: false, 1f, markPitch + (Random.value * markPitch));
         }
         else
@@ -95,24 +91,47 @@ public static class AscensionHandler
     }
 
     /// <summary>
+    /// Sets the internal ascension implementation to the appropriate type, based on whether the current session is online or not.
+    /// </summary>
+    internal static void InitAscensionImpl()
+    {
+        _ascensionImpl = Extras.IsOnlineSession
+            ? new MeadowAscensionImpl()
+            : new VanillaAscensionImpl();
+
+        Main.Logger.LogInfo($"Initialized new ascension implementation: {_ascensionImpl}");
+    }
+
+    /// <summary>
     /// Updates the cooldowns of recently ascended or revived objects.
     /// </summary>
-    public static void UpdateCooldowns()
+    internal static void UpdateCooldowns()
     {
         if (_ascensionCooldowns.Count < 1) return;
 
         bool expired = false;
 
-        foreach (KeyValuePair<PhysicalObject, AscensionCooldown> cooldown in _ascensionCooldowns)
+        foreach (KeyValuePair<PhysicalObject, AscensionCooldown> kvp in _ascensionCooldowns)
         {
-            cooldown.Value.Update(Time.deltaTime);
+            PhysicalObject physicalObject = kvp.Key;
+            AscensionCooldown cooldown = kvp.Value;
 
-            expired = cooldown.Value.IsExpired;
+            if (cooldown.IsRevival)
+            {
+                BodyChunk bodyChunk = physicalObject is Creature crit ? crit.mainBodyChunk : physicalObject.firstChunk;
+
+                bodyChunk.vel.x = 0f;
+                bodyChunk.vel.y = bodyChunk.owner.room.gravity * 1.25f;
+            }
+
+            cooldown.Update(Time.deltaTime);
+
+            expired = cooldown.IsExpired;
         }
 
         if (expired)
         {
-            _ascensionCooldowns = [.. _ascensionCooldowns.Where(c => !c.Value.IsExpired)];
+            _ascensionCooldowns = [.. _ascensionCooldowns.Where(static c => !c.Value.IsExpired)];
         }
     }
 
@@ -120,10 +139,18 @@ public static class AscensionHandler
     /// Represents a time limit where a creature cannot be affected by Saint's abilities.
     /// </summary>
     /// <param name="Duration">The amount of time the creature will be immune for.</param>
-    private sealed record AscensionCooldown(float Duration)
+    private sealed record AscensionCooldown
     {
-        public float Duration { get; private set; } = Duration;
+        public float Duration { get; private set; }
         public bool IsExpired { get; private set; }
+
+        public bool IsRevival { get; }
+
+        public AscensionCooldown(float duration, bool isRevival)
+        {
+            Duration = duration;
+            IsRevival = isRevival;
+        }
 
         public void Update(float deltaTime)
         {

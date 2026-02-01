@@ -1,23 +1,15 @@
 using System.Collections.Generic;
 using System.Linq;
-using AscendedSaint.Attunement;
 using ModLib.Options;
 using MoreSlugcats;
 using RWCustom;
 
-namespace AscendedSaint.Features;
+namespace AscendedSaint.Utils;
 
-public static class RevivalFeature
+public static class RevivalHelper
 {
-    private static float TargetHealth => OptionUtils.GetOptionValue(Options.REVIVAL_HEALTH_FACTOR) * 0.01f;
+    private static float RevivalHealth => OptionUtils.GetOptionValue(Options.REVIVAL_HEALTH_FACTOR) * 0.01f;
     private static int RevivalStun => OptionUtils.GetOptionValue(Options.REVIVAL_STUN_DURATION);
-
-    private static void ReactToRevival(this OracleBehavior oracleBehavior, string reactionString)
-    {
-        oracleBehavior.dialogBox.Interrupt("...", 100);
-
-        oracleBehavior.dialogBox.NewMessage(reactionString, 40);
-    }
 
     /// <summary>
     /// Obtains an iterator's full name based on its ID.
@@ -55,7 +47,7 @@ public static class RevivalFeature
         if (abstractCreature.state is HealthState healthState)
         {
             healthState.alive = true;
-            healthState.health = target is Player ? 1f : TargetHealth;
+            healthState.health = target is Player ? 1f : RevivalHealth;
         }
 
         target.dead = false;
@@ -102,9 +94,7 @@ public static class RevivalFeature
             {
                 pebblesBehavior.Pain();
 
-                pebblesBehavior.ReactToRevival(AscensionStrings.RevivePebbles);
-
-                pebblesBehavior.halcyon = oracle.room.physicalObjects.SelectMany(objs => objs.Where(obj => obj is HalcyonPearl)).FirstOrDefault() as HalcyonPearl;
+                pebblesBehavior.halcyon = oracle.room.physicalObjects.SelectMany(static objs => objs.Where(static obj => obj is HalcyonPearl)).FirstOrDefault() as HalcyonPearl;
 
                 Main.Logger.LogDebug($"Halcyon porl: {pebblesBehavior.halcyon}");
             }
@@ -136,10 +126,15 @@ public static class RevivalFeature
 
                 moonBehavior.Pain();
 
-                moonBehavior.ReactToRevival(AscensionStrings.ReviveMoon);
+                moonBehavior.wasScaredBySingularity = true;
+                moonBehavior.SingularityProtest();
             }
 
             storySession.saveState.deathPersistentSaveData.ripMoon = false;
+        }
+        else
+        {
+            Main.Logger.LogWarning($"Reviving unknown oracle: {oracle.ID}; Custom Oracle revival is not supported and may result in undefined behavior!");
         }
 
         oracle.stun = (int)(RevivalStun * 0.5f);
@@ -151,25 +146,34 @@ public static class RevivalFeature
         return true;
     }
 
+    /// <summary>
+    /// Removes a given creature from the world's <c>respawnCreatures</c> list.
+    /// </summary>
+    /// <param name="creature">The creature to be removed.</param>
+    public static void RemoveFromRespawnsList(Creature creature)
+    {
+        if (creature is Player) return;
+
+        CreatureState state = creature.abstractCreature.state;
+        EntityID ID = creature.abstractCreature.ID;
+
+        if (state.alive && ID.spawner >= 0 && creature.room?.game.session is StoryGameSession storySession)
+        {
+            bool removed = storySession.saveState.respawnCreatures.Remove(ID.spawner);
+
+            Main.Logger.LogDebug($"Removed {creature} ({ID.spawner}) from the respawns list? {removed}");
+        }
+    }
+
     private static bool CanReviveOracle(Oracle oracle)
     {
-        if (oracle.room?.game.session is not StoryGameSession storyGame) return false;
-
-        bool? canRevive = oracle.ID == MoreSlugcatsEnums.OracleID.CL
-            ? storyGame.saveState.deathPersistentSaveData.ripPebbles
-            : oracle.ID == Oracle.OracleID.SL
-                ? storyGame.saveState.deathPersistentSaveData.ripMoon
-                    || oracle.oracleBehavior is SLOracleBehavior { State.neuronsLeft: 0 }
-                : null;
-
-        if (canRevive is null)
-        {
-            canRevive = OptionUtils.IsOptionEnabled(Options.CUSTOM_ORACLE_REVIVAL) && !oracle.Consious;
-
-            Main.Logger.LogWarning($"Attempting to revive unknown oracle! ({oracle.ID})! Will revive? {canRevive}");
-        }
-
-        return canRevive.Value;
+        return oracle.room?.game.session is StoryGameSession storyGame
+            && (oracle.ID == MoreSlugcatsEnums.OracleID.CL || oracle.ID == Oracle.OracleID.SS
+                ? storyGame.saveState.deathPersistentSaveData.ripPebbles
+                : oracle.ID == Oracle.OracleID.SL
+                    ? storyGame.saveState.deathPersistentSaveData.ripMoon
+                        || oracle.oracleBehavior is SLOracleBehavior { State.neuronsLeft: 0 }
+                    : OptionUtils.IsOptionEnabled(Options.CUSTOM_ORACLE_REVIVAL) && !oracle.Alive);
     }
 
     /// <summary>
@@ -192,24 +196,5 @@ public static class RevivalFeature
         abstractSwarmer.RealizeInRoom();
 
         return abstractSwarmer?.realizedObject as SLOracleSwarmer;
-    }
-
-    /// <summary>
-    /// Removes a given creature from the world's <c>respawnCreatures</c> list.
-    /// </summary>
-    /// <param name="creature">The creature to be removed.</param>
-    public static void RemoveFromRespawnsList(Creature creature)
-    {
-        if (creature is Player) return;
-
-        CreatureState state = creature.abstractCreature.state;
-        EntityID ID = creature.abstractCreature.ID;
-
-        if (state.alive && ID.spawner >= 0 && creature.room?.game.session is StoryGameSession storySession)
-        {
-            bool removed = storySession.saveState.respawnCreatures.Remove(ID.spawner);
-
-            Main.Logger.LogDebug($"Removed {creature} ({ID.spawner}) from the respawns list? {removed}");
-        }
     }
 }

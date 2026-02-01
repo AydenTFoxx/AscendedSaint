@@ -1,8 +1,8 @@
 ﻿{
     "id": "ynhzrfxn.ascendedsaint",
     "name": "Ascended Saint",
-    "version": "2.0.0",
-    "target_game_version": "v1.11.2",
+    "version": "2.0.1",
+    "target_game_version": "v1.11.5",
     "authors": "YannahTFoxx",
     "description": "Now overhauled for v1.11!<LINE><LINE>Allows Saint to target themselves with their Attunement ability.<LINE>Optionally grants the ability to undo death. Do with this as thou wilt.",
     "requirements": [
@@ -12,7 +12,8 @@
         "More Slugcats Expansion"
     ],
     "priorities": [
-        "henpemaz_rainmeadow"
+        "henpemaz_rainmeadow",
+        "ddemile.fake_achievements"
     ],
     "tags": [
         "Game Mechanics",

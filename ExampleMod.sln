@@ -5,11 +5,9 @@ VisualStudioVersion = 17.4.33205.214
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AscendedSaint", "src\AscendedSaint.csproj", "{C8AF8B79-0A9F-435F-BC0C-FDA563ECCDB9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModLib", "ModLib\ModLib.csproj", "{F1CAE95C-A75D-451F-8922-B8D272123A70}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModLib", "..\ModLib\ModLib\ModLib.csproj", "{F1CAE95C-A75D-451F-8922-B8D272123A70}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModLib.Loader", "ModLib.Loader\ModLib.Loader.csproj", "{C5CC56B5-07BE-47DD-821C-428F94739946}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HRVoidSeaHotfix", "HRVoidSeaHotfix\HRVoidSeaHotfix.csproj", "{5A1B3094-233D-4288-A798-D8E47852ABDC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModLib.Loader", "..\ModLib\ModLib.Loader\ModLib.Loader.csproj", "{C5CC56B5-07BE-47DD-821C-428F94739946}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -57,18 +55,6 @@ Global
 		{C5CC56B5-07BE-47DD-821C-428F94739946}.Release|x64.Build.0 = Release|Any CPU
 		{C5CC56B5-07BE-47DD-821C-428F94739946}.Release|x86.ActiveCfg = Release|Any CPU
 		{C5CC56B5-07BE-47DD-821C-428F94739946}.Release|x86.Build.0 = Release|Any CPU
-		{5A1B3094-233D-4288-A798-D8E47852ABDC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5A1B3094-233D-4288-A798-D8E47852ABDC}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5A1B3094-233D-4288-A798-D8E47852ABDC}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{5A1B3094-233D-4288-A798-D8E47852ABDC}.Debug|x64.Build.0 = Debug|Any CPU
-		{5A1B3094-233D-4288-A798-D8E47852ABDC}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{5A1B3094-233D-4288-A798-D8E47852ABDC}.Debug|x86.Build.0 = Debug|Any CPU
-		{5A1B3094-233D-4288-A798-D8E47852ABDC}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5A1B3094-233D-4288-A798-D8E47852ABDC}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5A1B3094-233D-4288-A798-D8E47852ABDC}.Release|x64.ActiveCfg = Release|Any CPU
-		{5A1B3094-233D-4288-A798-D8E47852ABDC}.Release|x64.Build.0 = Release|Any CPU
-		{5A1B3094-233D-4288-A798-D8E47852ABDC}.Release|x86.ActiveCfg = Release|Any CPU
-		{5A1B3094-233D-4288-A798-D8E47852ABDC}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,9 +1,8 @@
-using AscendedSaint.Attunement;
-using AscendedSaint.Features;
+using AscendedSaint.Utils;
 using ModLib.Meadow;
 using RainMeadow;
 
-namespace AscendedSaint.Meadow;
+namespace AscendedSaint.Attunement.Meadow;
 
 /// <summary>
 ///     Custom events sent to or received in order to properly sync settings and the mod's behavior.
@@ -15,7 +14,7 @@ public static class MyRPCs
     /// </summary>
     /// <param name="onlineObject">The creature who was ascended or revived.</param>
     [SoftRPCMethod]
-    public static void SyncAscensionEffects(RPCEvent rpcEvent, OnlinePhysicalObject onlineObject)
+    public static void SyncAscensionEffects(RPCEvent rpcEvent, OnlinePhysicalObject onlineObject, bool isRevival)
     {
         if (onlineObject is null || onlineObject.apo.realizedObject is not (Creature or Oracle))
         {
@@ -24,10 +23,6 @@ public static class MyRPCs
             rpcEvent.Resolve(new GenericResult.Fail());
             return;
         }
-
-        bool isRevival = onlineObject.apo.realizedObject is Creature creature
-            ? !creature.dead
-            : onlineObject.apo.realizedObject is Oracle { health: > 0f };
 
         AscensionHandler.SpawnAscensionEffects(onlineObject.apo.realizedObject, isRevival);
     }
@@ -47,20 +42,25 @@ public static class MyRPCs
             return;
         }
 
-        if (onlineObject.apo.realizedObject is Creature creature)
+        PhysicalObject? physicalObject = onlineObject.apo.realizedObject;
+
+        if (physicalObject is Creature creature)
         {
-            RevivalFeature.ReviveCreature(creature);
+            RevivalHelper.ReviveCreature(creature);
         }
-        else if (onlineObject.apo.realizedObject is Oracle oracle)
+        else if (physicalObject is Oracle oracle)
         {
-            RevivalFeature.ReviveOracle(oracle);
+            RevivalHelper.ReviveOracle(oracle);
         }
         else
         {
             Main.Logger.LogWarning($"Failed to revive invalid target: {onlineObject}");
 
             rpcEvent.Resolve(new GenericResult.Fail());
+            return;
         }
+
+        physicalObject.SetAscensionCooldown(AscensionHandler.DefaultAscensionCooldown, isRevival: true);
     }
 
     /// <summary>
@@ -89,6 +89,6 @@ public static class MyRPCs
             return;
         }
 
-        RevivalFeature.RemoveFromRespawnsList(creature);
+        RevivalHelper.RemoveFromRespawnsList(creature);
     }
 }

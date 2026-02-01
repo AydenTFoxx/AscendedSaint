@@ -1,4 +1,4 @@
-using AscendedSaint.Features;
+using AscendedSaint.Utils;
 
 namespace AscendedSaint.Attunement;
 
@@ -6,11 +6,11 @@ public class VanillaAscensionImpl : IAscensionImpl
 {
     public bool TryAscendCreature(Creature target, Player caller)
     {
-        bool result = true;
+        bool result = false;
 
         if (target.dead)
         {
-            result = RevivalFeature.ReviveCreature(target);
+            result = RevivalHelper.ReviveCreature(target);
 
             if (result)
             {
@@ -23,11 +23,9 @@ public class VanillaAscensionImpl : IAscensionImpl
         {
             target.Die();
 
+            result = target.dead;
+
             SpawnAscensionEffects(target, false);
-        }
-        else
-        {
-            result = false;
         }
 
         return result;
@@ -35,7 +33,7 @@ public class VanillaAscensionImpl : IAscensionImpl
 
     public bool TryAscendOracle(Oracle target, Player caller)
     {
-        bool result = RevivalFeature.ReviveOracle(target);
+        bool result = RevivalHelper.ReviveOracle(target);
 
         if (result)
             SpawnAscensionEffects(target, true);
@@ -47,5 +45,5 @@ public class VanillaAscensionImpl : IAscensionImpl
         AscensionHandler.SpawnAscensionEffects(target, isRevival);
 
     public void RemoveFromRespawnsList(Creature creature) =>
-        RevivalFeature.RemoveFromRespawnsList(creature);
+        RevivalHelper.RemoveFromRespawnsList(creature);
 }

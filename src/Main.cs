@@ -1,79 +1,60 @@
-﻿using System.IO;
-using System.Security.Permissions;
+﻿using System.Security.Permissions;
 using AscendedSaint.Attunement;
-using AscendedSaint.Meadow;
 using BepInEx;
 using ModLib;
+using ModLib.Logging;
 
 // Allows access to private members
 #pragma warning disable CS0618
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 #pragma warning restore CS0618
 
-
 namespace AscendedSaint;
 
 [BepInPlugin(MOD_GUID, MOD_NAME, MOD_VERSION)]
-public class Main : ModPlugin
+public sealed class Main : ModPlugin
 {
     public const string MOD_GUID = "ynhzrfxn.ascendedsaint";
     public const string MOD_NAME = "Ascended Saint";
-    public const string MOD_VERSION = "2.0.0";
+    public const string MOD_VERSION = "2.0.1";
 
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+#nullable disable warnings
 
-    public static new LogUtils.Logger Logger { get; private set; }
+    public static new ModLogger Logger { get; private set; }
 
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+#nullable restore warnings
 
     public Main() : base(new Options())
     {
         Logger = base.Logger;
-
-        string path = Registry.MyMod.LogID?.Properties.CurrentFilePath ?? Path.Combine(Registry.DefaultLogsPath, "AscendedSaint.log");
-
-        if (File.Exists(path))
-        {
-            File.WriteAllText(path, "");
-        }
-    }
-
-    public override void OnEnable()
-    {
-        if (IsModEnabled) return;
-
-        base.OnEnable();
-
-        AscensionHandler.AscensionImpl = Extras.IsMeadowEnabled
-            ? new MeadowAscensionImpl()
-            : new VanillaAscensionImpl();
-    }
-
-    public override void OnDisable()
-    {
-        if (!IsModEnabled) return;
-
-        base.OnDisable();
-
-        AscensionHandler.AscensionImpl = null;
     }
 
     protected override void ApplyHooks()
     {
         base.ApplyHooks();
 
-        On.RainWorldGame.Update += GameUpdateHook;
+        Hooks.ApplyHooks();
 
-        SaintMechanicsHooks.AddHooks();
+        On.GameSession.ctor += GameSessionHook;
+        On.RainWorldGame.Update += GameUpdateHook;
     }
 
     protected override void RemoveHooks()
     {
         base.RemoveHooks();
 
-        On.RainWorldGame.Update -= GameUpdateHook;
+        Hooks.RemoveHooks();
 
-        SaintMechanicsHooks.RemoveHooks();
+        On.GameSession.ctor -= GameSessionHook;
+        On.RainWorldGame.Update -= GameUpdateHook;
+    }
+
+    private static void GameSessionHook(On.GameSession.orig_ctor orig, GameSession self, RainWorldGame game)
+    {
+        if (!Extras.InGameSession)
+            AscensionHandler.InitAscensionImpl();
+
+        orig.Invoke(self, game);
     }
 
     private static void GameUpdateHook(On.RainWorldGame.orig_Update orig, RainWorldGame self)
