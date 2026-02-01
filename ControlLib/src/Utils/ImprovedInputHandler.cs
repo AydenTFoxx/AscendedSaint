@@ -17,7 +17,7 @@ internal static class ImprovedInputHandler
         {
             CLLogger.LogWarning("Failed to register PlayerKeybind; Disabling IIC compatibility layer.");
 
-            CompatibilityManager.SetModCompatibility("improved-input-config", false);
+            CompatibilityManager.ToggleModCompatibility("improved-input-config", false);
 
             return PlayerKeybind.Special;
         }

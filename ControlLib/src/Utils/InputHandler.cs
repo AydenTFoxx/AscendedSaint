@@ -105,7 +105,7 @@ public static class InputHandler
         /// Initializes all keybinds of the mod. A dummy method for the sake of registering keybinds as early as possible.
         /// </summary>
         public static void InitKeybinds() =>
-            CLLogger.LogInfo($"Initialized keybinds successfully. IIC support enabled? {IsIICEnabled()}");
+            CLLogger.LogDebug($"Initialized keybinds successfully. IIC support enabled? {IsIICEnabled()}");
     }
 }
 

@@ -15,7 +15,7 @@ public class ControlLibMain : BaseUnityPlugin
 {
     public const string PLUGIN_NAME = "ControlLib";
     public const string PLUGIN_GUID = "ynhzrfxn.controllib";
-    public const string PLUGIN_VERSION = "0.4.0";
+    public const string PLUGIN_VERSION = "0.4.2";
 
     private bool isInitialized;
     private readonly CLOptions options;
@@ -33,6 +33,10 @@ public class ControlLibMain : BaseUnityPlugin
         if (isInitialized) return;
         isInitialized = true;
 
+        CLLogger.LogMessage("Started initialization process.");
+
+        CompatibilityManager.CheckModCompats();
+
         ApplyCLHooks();
 
         InputHandler.Keys.InitKeybinds();
@@ -45,6 +49,8 @@ public class ControlLibMain : BaseUnityPlugin
         if (!isInitialized) return;
         isInitialized = false;
 
+        CLLogger.LogMessage("Started deactivation process.");
+
         RemoveCLHooks();
 
         Logger.LogInfo("Disabled ControlLib successfully.");
@@ -54,7 +60,6 @@ public class ControlLibMain : BaseUnityPlugin
     {
         try
         {
-            CompatibilityManager.ApplyHooks();
             PossessionHooks.ApplyHooks();
 
             On.GameSession.ctor += GameSessionHook;
@@ -74,7 +79,6 @@ public class ControlLibMain : BaseUnityPlugin
     {
         try
         {
-            CompatibilityManager.RemoveHooks();
             PossessionHooks.RemoveHooks();
 
             On.GameSession.ctor -= GameSessionHook;
@@ -94,7 +98,7 @@ public class ControlLibMain : BaseUnityPlugin
     {
         orig.Invoke(self, player);
 
-        bool isOnlineSession = CompatibilityManager.IsRainMeadowEnabled();
+        bool isOnlineSession = CompatibilityManager.IsRainMeadowEnabled() && MeadowUtils.IsOnline;
 
         if (self.game.Players.Count <= 1 && (!isOnlineSession || MeadowUtils.IsHost))
         {
@@ -102,7 +106,7 @@ public class ControlLibMain : BaseUnityPlugin
         }
         else
         {
-            CLLogger.LogDebug($"{self.game.FirstRealizedPlayer} is already realized, ignoring.");
+            CLLogger.LogDebug($"{self.game.FirstAnyPlayer} is already present, ignoring.");
         }
     }
 

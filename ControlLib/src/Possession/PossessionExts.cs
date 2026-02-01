@@ -26,7 +26,7 @@ public static class PossessionExts
     /// <returns>The existing <c>PossessionManager</c> instance, or a new one if none was found.</returns>
     public static PossessionManager GetPossessionManager(this Player self)
     {
-        if (TryGetPossessionManager(self, out PossessionManager? manager)) return manager!;
+        if (TryGetPossessionManager(self, out PossessionManager manager)) return manager!;
 
         PossessionManager newManager = new(self);
 
@@ -40,11 +40,11 @@ public static class PossessionExts
     /// <param name="self">The creature to be queried.</param>
     /// <param name="possession">The output value; May be a <c>Player</c> instance or <c>null</c>.</param>
     /// <returns><c>true</c> if a value was found, <c>false</c> otherwise.</returns>
-    public static bool TryGetPossession(this Creature self, out Player? possession)
+    public static bool TryGetPossession(this Creature self, out Player possession)
     {
-        possession = null;
+        possession = null!;
 
-        if (_cachedPossessions.TryGetValue(self, out Player? player))
+        if (_cachedPossessions.TryGetValue(self, out Player player))
         {
             possession = player;
             return true;
@@ -59,7 +59,7 @@ public static class PossessionExts
     /// <param name="self">The player to be queried.</param>
     /// <param name="manager">The output value; May be a <c>PossessionManager</c> instance or <c>null</c>.</param>
     /// <returns><c>true</c> if a value was found, <c>false</c> otherwise.</returns>
-    public static bool TryGetPossessionManager(this Player self, out PossessionManager? manager) => _possessionHolders.TryGetValue(self, out manager);
+    public static bool TryGetPossessionManager(this Player self, out PossessionManager manager) => _possessionHolders.TryGetValue(self, out manager);
 
     /// <summary>
     /// Adds or removes the given creature's cached possession pair, depending on whether the possession is still valid.
@@ -70,7 +70,8 @@ public static class PossessionExts
     {
         if (_cachedPossessions.TryGetValue(self, out Player possession))
         {
-            if (!possession.GetPossessionManager().HasPossession(self))
+            if (possession.TryGetPossessionManager(out PossessionManager manager)
+                && !manager.HasPossession(self))
             {
                 _cachedPossessions.Remove(self);
             }
