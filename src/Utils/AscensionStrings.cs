@@ -1,4 +1,4 @@
-namespace AscendedSaint.Attunement;
+namespace AscendedSaint.Utils;
 
 public static class AscensionStrings
 {

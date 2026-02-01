@@ -1,12 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+	<!-- .NET options -->
 	<PropertyGroup>
 		<TargetFramework>net481</TargetFramework>
 		<LangVersion>latest</LangVersion>
 		<Nullable>enable</Nullable>
+		<PathMap>$(MSBuildProjectDirectory)=/$(TargetName)</PathMap>
+	</PropertyGroup>
+
+	<!-- Compiler settings -->
+	<PropertyGroup>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 	</PropertyGroup>
 
+	<!-- Referenced assemblies -->
 	<ItemGroup>
 		<Reference Include="../lib/*.dll">
 			<Private>false</Private>
@@ -16,19 +23,23 @@
 		</Reference>
 	</ItemGroup>
 
+	<!-- Determinism config -->
+	<PropertyGroup>
+		<Deterministic>true</Deterministic>
+		<DeterministicSourcePaths>true</DeterministicSourcePaths>
+	</PropertyGroup>
+
 	<ItemGroup>
-	  <ProjectReference Include="..\ModLib\ModLib.csproj" />
+		<SourceRoot Include="$(MSBuildThisFileDirectory)/" />
 	</ItemGroup>
 
-	<Target Name="GenerateMod" AfterTargets="PostBuildEvent">
-		<ItemGroup>
-			<RemovePlugins Include="../mod/plugins/*.dll" />
-		</ItemGroup>
+	<!-- Post-compile tasks -->
+	<Target Name="GenerateLibrary" AfterTargets="PostBuildEvent">
 		<ItemGroup>
 			<CopyPlugins Include="$(TargetDir)$(TargetName).*" />
+			<CopyPlugins Include="../../ModLib/mod/newest/plugins/*" />
 		</ItemGroup>
 
-		<Delete Files="@(RemovePlugins)" />
 		<Copy SourceFiles="@(CopyPlugins)" DestinationFolder="../mod/newest/plugins/" />
 	</Target>
 

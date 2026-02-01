@@ -1,10 +1,9 @@
 using System;
-using AscendedSaint.Attunement;
-using AscendedSaint.Features;
+using AscendedSaint.Utils;
 using ModLib.Meadow;
 using RainMeadow;
 
-namespace AscendedSaint.Meadow;
+namespace AscendedSaint.Attunement.Meadow;
 
 public class MeadowAscensionImpl : IAscensionImpl
 {
@@ -24,11 +23,11 @@ public class MeadowAscensionImpl : IAscensionImpl
         {
             if (target.IsLocal())
             {
-                RevivalFeature.ReviveCreature(target);
+                RevivalHelper.ReviveCreature(target);
             }
             else
             {
-                MeadowUtils.RequestOwnership(onlineObject!, BuildRevivalCallback<Creature>(onlineObject!, RevivalFeature.ReviveCreature));
+                MeadowUtils.RequestOwnership(onlineObject!, BuildRevivalCallback<Creature>(onlineObject!, RevivalHelper.ReviveCreature));
             }
 
             SpawnAscensionEffects(target, true);
@@ -64,16 +63,16 @@ public class MeadowAscensionImpl : IAscensionImpl
 
         if (target.IsLocal())
         {
-            RevivalFeature.ReviveOracle(target);
+            RevivalHelper.ReviveOracle(target);
         }
         else
         {
-            MeadowUtils.RequestOwnership(onlineObject!, BuildRevivalCallback<Oracle>(onlineObject!, RevivalFeature.ReviveOracle));
+            MeadowUtils.RequestOwnership(onlineObject!, BuildRevivalCallback<Oracle>(onlineObject!, RevivalHelper.ReviveOracle));
         }
 
         SpawnAscensionEffects(target, true);
 
-        MeadowUtils.LogSystemMessage($"{RevivalFeature.GetOracleName(target.ID)} was revived by {MeadowUtils.GetOnlineName(caller)}.");
+        MeadowUtils.LogSystemMessage($"{RevivalHelper.GetOracleName(target.ID)} was revived by {MeadowUtils.GetOnlineName(caller)}.");
 
         return true;
     }
@@ -84,7 +83,7 @@ public class MeadowAscensionImpl : IAscensionImpl
 
         if (onlineObject is null && MeadowUtils.IsOnline) return;
 
-        onlineObject?.BroadcastOnceRPCInRoom(MyRPCs.SyncAscensionEffects, onlineObject);
+        onlineObject?.BroadcastOnceRPCInRoom(MyRPCs.SyncAscensionEffects, onlineObject, isRevival);
 
         AscensionHandler.SpawnAscensionEffects(target, isRevival);
     }
@@ -95,7 +94,7 @@ public class MeadowAscensionImpl : IAscensionImpl
 
         if (MeadowUtils.IsHost)
         {
-            RevivalFeature.RemoveFromRespawnsList(creature);
+            RevivalHelper.RemoveFromRespawnsList(creature);
         }
         else
         {
