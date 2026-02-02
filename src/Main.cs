@@ -16,7 +16,7 @@ public sealed class Main : ModPlugin
 {
     public const string MOD_GUID = "ynhzrfxn.ascendedsaint";
     public const string MOD_NAME = "Ascended Saint";
-    public const string MOD_VERSION = "2.0.1";
+    public const string MOD_VERSION = "2.0.0";
 
 #nullable disable warnings
 
