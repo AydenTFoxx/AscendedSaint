@@ -17,9 +17,11 @@ public sealed class Options : OptionInterface
     public static Configurable<bool> ALLOW_REVIVAL;
     public static Configurable<bool> REQUIRE_KARMA_FLOWER;
     public static Configurable<int> REVIVAL_HEALTH_FACTOR;
+    public static Configurable<int> REVIVAL_STUN_DURATION;
 
     public static Configurable<bool> CUSTOM_ORACLE_REVIVAL;
-    public static Configurable<int> REVIVAL_STUN_DURATION;
+    public static Configurable<bool> HEALER_SAINT;
+    public static Configurable<bool> ALLOW_SELF_REVIVAL;
 
 #nullable restore warnings
 
@@ -58,11 +60,23 @@ public sealed class Options : OptionInterface
             "custom_oracle_revival",
             false,
             new ConfigurableInfo("If enabled, non-vanilla Iterators can be revived with Saint's abilities. Untested and highly prone to bugs."));
+
+        HEALER_SAINT = config.Bind(
+            "healer_saint",
+            false,
+            new ConfigurableInfo("If enabled, replaces Saint's karmic blast with a healing ability. Work-in-Progress; Not recommended for Saint's story campaign.")
+        );
+
+        ALLOW_SELF_REVIVAL = config.Bind(
+            "allow_self_revival",
+            true,
+            new ConfigurableInfo("If enabled, dying with Karmic reinforcement will revive Saint and consume the reinforcement. Requires Healer Saint.")
+        );
     }
 
     public override void Initialize()
     {
-        Main.Logger.LogInfo($"{nameof(Options)}: Initialized REMIX menu interface.");
+        Main.Logger.LogInfo($"{this}: Initialized REMIX menu interface.");
 
         base.Initialize();
 
@@ -75,8 +89,16 @@ public sealed class Options : OptionInterface
                 .AddPadding(Vector2.up * 10f)
                 .AddSliderOption("Revival Health Factor", REVIVAL_HEALTH_FACTOR)
                 .AddSliderOption("Revival Stun Duration", REVIVAL_STUN_DURATION)
-                .AddPadding(Vector2.up * 25f)
+                .Build(),
+            new OptionBuilder(this, "Experiments")
+                .CreateModHeader()
+                .AddText("These options are experimental and highly prone to bugs; Use at your own risk!", new Vector2(80, 24), false, RainWorld.GoldRGB)
+                .AddPadding(Vector2.up * 20f)
                 .AddCheckBoxOption("Custom Iterator Revival", CUSTOM_ORACLE_REVIVAL, default, MenuColorEffect.rgbDarkRed)
+                .AddPadding(Vector2.up * 10f)
+                .AddCheckBoxOption("Healer Saint", HEALER_SAINT, default, RainWorld.SaturatedGold)
+                .AddPadding(Vector2.left * 10f)
+                .AddCheckBoxOption("Allow Self Revival", ALLOW_SELF_REVIVAL, RainWorld.SaturatedGold)
                 .Build()
         ];
     }

@@ -1,11 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+	<!-- Assembly metadata -->
+	<PropertyGroup>
+		<Title>Ascended Saint</Title>
+		<Company>YNHZRFXN</Company>
+		<AssemblyVersion>2.0.0.5</AssemblyVersion>
+		<FileVersion>2.0.0.5</FileVersion>
+		<PathMap>$(MSBuildProjectDirectory)=/$(TargetName)</PathMap>
+	</PropertyGroup>
+
 	<!-- .NET options -->
 	<PropertyGroup>
 		<TargetFramework>net481</TargetFramework>
 		<LangVersion>latest</LangVersion>
 		<Nullable>enable</Nullable>
-		<PathMap>$(MSBuildProjectDirectory)=/$(TargetName)</PathMap>
 	</PropertyGroup>
 
 	<!-- Compiler settings -->
@@ -37,7 +45,8 @@
 	<Target Name="GenerateLibrary" AfterTargets="PostBuildEvent">
 		<ItemGroup>
 			<CopyPlugins Include="$(TargetDir)$(TargetName).*" />
-			<CopyPlugins Include="../../ModLib/mod/newest/plugins/*" />
+
+			<CopyPlugins Include="../../ModLib/mod/newest/plugins/*.*" />
 		</ItemGroup>
 
 		<Copy SourceFiles="@(CopyPlugins)" DestinationFolder="../mod/newest/plugins/" />

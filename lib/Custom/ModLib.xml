@@ -222,6 +222,13 @@
             <param name="forceQuery">If true, ignores any previously cached result and queries for the mod's ID directly.</param>
             <returns><c>true</c> if the given mod was found to be enabled, <c>false</c> otherwise.</returns>
         </member>
+        <member name="M:ModLib.CompatibilityManager.IsFakeAchievementsEnabled(System.Boolean)">
+            <summary>
+                Determines if the Fake AChievements mod is enabled.
+            </summary>
+            <param name="forceQuery">If true, ignores any previously cached result and queries for Rain Meadow's ID directly.</param>
+            <returns><c>true</c> if the mod is enabled, <c>false</c> otherwise.</returns>
+        </member>
         <member name="M:ModLib.CompatibilityManager.IsIICEnabled(System.Boolean)">
             <summary>
                 Determines if either Improved Input Config or Improved Input Config: Extended are enabled.
@@ -255,6 +262,39 @@
             </summary>
             <param name="supportedModIDs">The list of mod IDs to be queried.</param>
         </member>
+        <member name="T:ModLib.Extensions.AssemblyExtensions">
+            <summary>
+                Utility and extension methods for handling assemblies.
+            </summary>
+            <remarks>
+                Credit goes to LogUtils by Fluffball (@TheVileOne) for the original LogUtils.Helpers.AssemblyUtils code.
+            </remarks>
+        </member>
+        <member name="M:ModLib.Extensions.AssemblyExtensions.GetAllTypes">
+            <summary>
+                Safely retrieves all types from all loaded assemblies in the current domain.
+            </summary>
+            <returns>A collection containing all loaded types in the current domain.</returns>
+        </member>
+        <member name="M:ModLib.Extensions.AssemblyExtensions.GetTypesSafely(System.Reflection.Assembly)">
+            <summary>
+                Retrieves all types from a given assembly while safely handling thrown exceptions.
+            </summary>
+            <param name="assembly">The assembly whose types will be retrieved.</param>
+            <returns>A collection containing all loaded types of the given assembly.</returns>
+        </member>
+        <member name="T:ModLib.Extensions.PhysicalObjectExtensions">
+            <summary>
+                Extension methods for manipulating <see cref="T:PhysicalObject"/> instances.
+            </summary>
+        </member>
+        <member name="M:ModLib.Extensions.PhysicalObjectExtensions.StunAllGrasps(PhysicalObject,System.Int32)">
+            <summary>
+                Stuns all creatures holding the current physical object.
+            </summary>
+            <param name="self">The physical object itself.</param>
+            <param name="stun">The duration for the stun.</param>
+        </member>
         <member name="T:ModLib.Extras">
             <summary>
                 A collection of utilities and wrappers for common modding activities.
@@ -273,6 +313,11 @@
         <member name="P:ModLib.Extras.IsIICEnabled">
             <summary>
                 Whether or not the Improved Input Config: Extended mod is present. This value is cached for performance purposes.
+            </summary>
+        </member>
+        <member name="P:ModLib.Extras.IsFakeAchievementsEnabled">
+            <summary>
+                Whether or not the Fake Achievements mod is present. This value is cached for performance purposes.
             </summary>
         </member>
         <member name="P:ModLib.Extras.IsOnlineSession">
@@ -313,6 +358,30 @@
                 Determines if Dev Tools is currently enabled, or was enabled last time ModLib was active.
                 Usable even before ModManager is available, but might be innacurate on the first time the mod is run.
             </summary>
+        </member>
+        <member name="M:ModLib.Extras.GrantFakeAchievement(System.String)">
+            <summary>
+                Grants and displays a given custom achievement to the client.
+                If the Fake Achievements mod is not present, this method does nothing.
+            </summary>
+            <param name="achievementID">The resolvable identifier of the achievement.</param>
+        </member>
+        <member name="M:ModLib.Extras.RevokeFakeAchievement(System.String)">
+            <summary>
+                Revokes a given custom achievement for the client.
+                If the Fake Achievements mod is not present, this method does nothing.
+            </summary>
+            <param name="achievementID">The resolvable identifier of the achievement.</param>
+        </member>
+        <member name="M:ModLib.Extras.IsLocalObject(PhysicalObject)">
+            <summary>
+                Safely determines if the given object is owned by the player in an online context.
+            </summary>
+            <param name="physicalObject">The object for testing.</param>
+            <returns>
+                <c>true</c> if the given object is owned by this client, <c>false</c> otherwise.
+                This method returns <c>true</c> if Rain Meadow is not enabled, or if the player is not in an online lobby.
+            </returns>
         </member>
         <member name="M:ModLib.Extras.WrapAction(System.Action)">
             <summary>
@@ -592,16 +661,36 @@
         </member>
         <member name="T:ModLib.Loader.Entrypoint">
             <summary>
-                ModLib's entry point for initializing core systems and being available for usage as early as possible.
+                ModLib's entrypoint for initializing core systems and being available for usage as early as possible.
             </summary>
             <remarks>
-                This is an internal class of ModLib, exposed for usage by other assemblies.
+                This is an internal class of ModLib, exposed for usage by extension assemblies.
                 Unless working strictly in that context, you should not access this class or any of its members directly.
             </remarks>
         </member>
         <member name="P:ModLib.Loader.Entrypoint.IsInitialized">
             <summary>
                 Whether or not ModLib was successfully initialized.
+            </summary>
+        </member>
+        <member name="E:ModLib.Loader.Entrypoint.PreInitialize">
+            <summary>
+                Invoked just before ModLib starts its initialization process.
+            </summary>
+        </member>
+        <member name="E:ModLib.Loader.Entrypoint.OnInitialize">
+            <summary>
+                Invoked after ModLib finishes initializing.
+            </summary>
+        </member>
+        <member name="E:ModLib.Loader.Entrypoint.PreDisable">
+            <summary>
+                Invoked just before ModLib starts its shutdown process.
+            </summary>
+        </member>
+        <member name="E:ModLib.Loader.Entrypoint.OnDisable">
+            <summary>
+                Invoked after ModLib has been disabled.
             </summary>
         </member>
         <member name="M:ModLib.Loader.Entrypoint.Initialize(System.Collections.Generic.IList{System.String},System.String)">
@@ -620,11 +709,6 @@
                 Disables ModLib and removes its resources from the game.
             </summary>
         </member>
-        <member name="M:ModLib.Loader.Entrypoint.InitializeCoreILHook(MonoMod.Cil.ILContext)">
-            <summary>
-                Adds a CorePlugin object to the GameObject all mods are tied to, so ModLib can more accurately detect when the game is shutting down.
-            </summary>
-        </member>
         <member name="M:ModLib.Loader.Entrypoint.InitializeCompatManager(System.Collections.Generic.IList{System.String},BepInEx.Logging.ManualLogSource,System.Boolean,System.String)">
             <summary>
                 Initializes compatibility checking with the provided paths to config files.
@@ -633,6 +717,11 @@
             <param name="logger">The logger for usage by this method.</param>
             <param name="isForcedInit">Whether or not this is a forced initalization. If the caller is not ModLib's Loader, this should always be <c>true</c>.</param>
             <param name="caller">The provided file path to the calling method.</param>
+        </member>
+        <member name="T:ModLib.Loader.ModLibExtensionAttribute">
+            <summary>
+                Specifies that a given class is the entrypoint for a ModLib extension assembly. This class cannot be inherited.
+            </summary>
         </member>
         <member name="T:ModLib.Logging.FallbackLogger">
             <summary>

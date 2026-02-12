@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Linq;
 using ModLib.Options;
 using MoreSlugcats;
@@ -10,6 +9,45 @@ public static class RevivalHelper
 {
     private static float RevivalHealth => OptionUtils.GetOptionValue(Options.REVIVAL_HEALTH_FACTOR) * 0.01f;
     private static int RevivalStun => OptionUtils.GetOptionValue(Options.REVIVAL_STUN_DURATION);
+
+    /// <summary>
+    /// Creates and grants a new Neuron Fly object for the given iterator (usually Looks to the Moon).
+    /// </summary>
+    /// <param name="oracle">The iterator this neuron is being created for.</param>
+    public static void AddOracleSwarmer(Oracle oracle)
+    {
+        World world = oracle.room.world;
+        AbstractPhysicalObject.AbstractObjectType swarmerType = oracle.ID == Oracle.OracleID.SL
+            ? AbstractPhysicalObject.AbstractObjectType.SLOracleSwarmer
+            : AbstractPhysicalObject.AbstractObjectType.SSOracleSwarmer;
+
+        AbstractPhysicalObject abstractSwarmer = new(
+            world,
+            swarmerType,
+            null,
+            oracle.abstractPhysicalObject.pos,
+            world.game.GetNewID()
+        );
+
+        abstractSwarmer.RealizeInRoom();
+
+        if (abstractSwarmer.realizedObject is not OracleSwarmer realizedSwarmer)
+        {
+            Main.Logger.LogWarning($"Failed to realize OracleSwarmer for {oracle}! Destroying created abstract object.");
+
+            abstractSwarmer.Destroy();
+            abstractSwarmer.realizedObject?.Destroy();
+            return;
+        }
+
+        oracle.mySwarmers.Add(realizedSwarmer);
+
+        if (oracle.ID == Oracle.OracleID.SL)
+            oracle.glowers++;
+
+        if (oracle.oracleBehavior is SLOracleBehavior oracleBehavior)
+            oracleBehavior.State.neuronsLeft++;
+    }
 
     /// <summary>
     /// Obtains an iterator's full name based on its ID.
@@ -34,8 +72,10 @@ public static class RevivalHelper
     ///     The health to be restored for the newly revived creature.
     ///     For slugcats/slugpups, this is always <c>1f</c> (100%).
     /// </param>
-    public static bool ReviveCreature(Creature target)
+    public static bool ReviveCreature(Creature? target)
     {
+        if (target is null) return false;
+
         if (!target.dead)
         {
             Main.Logger.LogWarning($"{target} cannot be revived, as it's already alive!");
@@ -58,8 +98,11 @@ public static class RevivalHelper
 
         if (target is Player player)
         {
-            player.playerState.alive = true;
-            player.playerState.permaDead = false;
+            if (player.playerState is not null)
+            {
+                player.playerState.alive = true;
+                player.playerState.permaDead = false;
+            }
 
             player.airInLungs = 0.1f;
             player.exhausted = true;
@@ -80,9 +123,9 @@ public static class RevivalHelper
     /// </summary>
     /// <param name="oracle">The iterator to de-ascend.</param>
     /// <remarks>But why would you?</remarks>
-    public static bool ReviveOracle(Oracle oracle)
+    public static bool ReviveOracle(Oracle? oracle)
     {
-        if (!CanReviveOracle(oracle)) return false;
+        if (oracle is null || !CanReviveOracle(oracle)) return false;
 
         StoryGameSession storySession = oracle.room.game.GetStorySession;
 
@@ -107,18 +150,10 @@ public static class RevivalHelper
         {
             Custom.Log("De-Ascend saint moon");
 
-            List<OracleSwarmer> myNewSwarmers = [];
-
             for (int i = 0; i < 7; i++)
             {
-                SLOracleSwarmer? swarmer = CreateSLOracleSwarmer(oracle);
-
-                if (swarmer is null) continue;
-
-                myNewSwarmers.Add(swarmer);
+                AddOracleSwarmer(oracle);
             }
-
-            oracle.mySwarmers.AddRange(myNewSwarmers);
 
             if (oracle.oracleBehavior is SLOracleBehavior moonBehavior)
             {
@@ -174,27 +209,5 @@ public static class RevivalHelper
                     ? storyGame.saveState.deathPersistentSaveData.ripMoon
                         || oracle.oracleBehavior is SLOracleBehavior { State.neuronsLeft: 0 }
                     : OptionUtils.IsOptionEnabled(Options.CUSTOM_ORACLE_REVIVAL) && !oracle.Alive);
-    }
-
-    /// <summary>
-    /// Creates a new Neuron Fly object for Looks to the Moon.
-    /// </summary>
-    /// <param name="oracle">The iterator this neuron is being created for.</param>
-    /// <returns>The new realized <c>SLOracleSwarmer</c> object.</returns>
-    private static SLOracleSwarmer? CreateSLOracleSwarmer(Oracle oracle)
-    {
-        World world = oracle.room.world;
-
-        AbstractPhysicalObject abstractSwarmer = new(
-            world,
-            AbstractPhysicalObject.AbstractObjectType.SLOracleSwarmer,
-            null,
-            oracle.abstractPhysicalObject.pos,
-            world.game.GetNewID()
-        );
-
-        abstractSwarmer.RealizeInRoom();
-
-        return abstractSwarmer?.realizedObject as SLOracleSwarmer;
     }
 }

@@ -5,12 +5,12 @@ using ModLib.Options;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
 
-namespace AscendedSaint;
+namespace AscendedSaint.Hooks;
 
 /// <summary>
 /// All hooks relating to Saint's new abilities and behaviors.
 /// </summary>
-internal static class Hooks
+internal static class AscensionHooks
 {
     public static void ApplyHooks()
     {
@@ -57,7 +57,6 @@ internal static class Hooks
     /// Allows the player to revive creatures and iterators using Saint's attunement ability.
     /// Toggleable with a REMIX option; Optionally requires a Karma Flower per revived target.
     /// </summary>
-    /// <param name="context"></param>
     private static void EnableRevivalFeatureILHook(ILContext context)
     {
         ILCursor c = new(context);
@@ -83,13 +82,13 @@ internal static class Hooks
 
         // Target: bodyChunk.vel += Custom.RNV() * 36f; <-- HERE (Append)
 
-        d.Emit(OpCodes.Ldloc, 18) // physicalObject
-         .Emit(OpCodes.Ldarg_0) // this
+        d.Emit(OpCodes.Ldarg_0) // this (self)
+         .Emit(OpCodes.Ldloc, 18) // physicalObject (target)
          .Emit(OpCodes.Ldloc, 15) // flag2 (didAscendCreature)
-         .EmitDelegate(ApplySaintMechanics); // physicalObject, this, flag2
+         .EmitDelegate(ApplySaintMechanics); // this, physicalObject, flag2
 
         d.Emit(OpCodes.Dup)
-         .Emit(OpCodes.Stloc, 15) // flag2 = ApplySaintMechanics(physicalObject, this, flag2);
+         .Emit(OpCodes.Stloc, 15) // flag2 = ApplySaintMechanics(this, physicalObject, flag2);
          .Emit(OpCodes.Brtrue, target); // if (flag2) continue;
 
         // Result:
@@ -149,50 +148,56 @@ internal static class Hooks
     /// <summary>
     /// Applies the custom mechanics of this mod for Saint's attunement ability.
     /// </summary>
-    /// <param name="physicalObject">The targeted object for ascension/revival.</param>
+    /// <param name="target">The targeted object for ascension/revival.</param>
     /// <param name="self">The player itself.</param>
     /// <param name="didAscendCreature">
     ///     If any ascension or revival has been performed;
     ///     Corresponds to the local variable "flag2" in the original (decompiled) code.
     /// </param>
     /// <returns></returns>
-    private static bool ApplySaintMechanics(PhysicalObject physicalObject, Player self, bool didAscendCreature)
+    private static bool ApplySaintMechanics(Player self, PhysicalObject target, bool didAscendCreature)
     {
         if ((Extras.IsOnlineSession && !MeadowUtils.IsMine(self))
-            || physicalObject is not (Creature or Oracle)
-            || physicalObject.HasAscensionCooldown())
+            || target is not (Creature or Oracle)
+            || target.HasAscensionCooldown())
             return didAscendCreature;
 
-        if (physicalObject != self && physicalObject is Creature { dead: false } or Oracle { Alive: true })
+        if (target != self && target is Creature { dead: false } or Oracle { Alive: true })
         {
-            physicalObject.SetAscensionCooldown(AscensionHandler.DefaultAscensionCooldown * 0.25f);
+            target.SetAscensionCooldown(AscensionHandler.DefaultAscensionCooldown * 0.25f);
 
             return didAscendCreature;
         }
 
-        bool requireKarmaFlower = OptionUtils.IsOptionEnabled(Options.REQUIRE_KARMA_FLOWER) && physicalObject != self;
+        bool requireKarmaFlower = OptionUtils.IsOptionEnabled(Options.REQUIRE_KARMA_FLOWER) && target != self;
         KarmaFlower? karmaFlower = requireKarmaFlower
             ? AscensionHandler.GetHeldKarmaFlower(self)
             : null;
 
         if (requireKarmaFlower && karmaFlower is null)
         {
-            Main.Logger.LogDebug($"Player has no Karma Flower, ignoring: {physicalObject}");
+            Main.Logger.LogDebug($"Player has no Karma Flower, ignoring: {target}");
 
-            physicalObject.SetAscensionCooldown(AscensionHandler.DefaultAscensionCooldown * 0.5f);
+            target.SetAscensionCooldown(AscensionHandler.DefaultAscensionCooldown * 0.5f);
         }
         else
         {
-            Main.Logger.LogDebug($"Attempting to ascend or revive: {physicalObject}");
+            Main.Logger.LogDebug($"Attempting to ascend or revive: {target}");
 
-            bool result = AscensionHandler.TryAscendObject(physicalObject, self);
+            bool result = AscensionHandler.TryAscendObject(target, self);
 
             if (result)
             {
                 didAscendCreature = true;
 
-                if (physicalObject != self)
+                if (target == self)
                 {
+                    Extras.GrantFakeAchievement($"{Main.MOD_GUID}/self_ascension");
+                }
+                else
+                {
+                    Extras.GrantFakeAchievement($"{Main.MOD_GUID}/revival");
+
                     karmaFlower?.Destroy();
 
                     self.SaintStagger(80);
@@ -206,7 +211,7 @@ internal static class Hooks
                 }
             }
 
-            physicalObject.SetAscensionCooldown(AscensionHandler.DefaultAscensionCooldown, isRevival: result && physicalObject != self);
+            target.SetAscensionCooldown(AscensionHandler.DefaultAscensionCooldown, isRevival: result && target != self);
         }
 
         return didAscendCreature;

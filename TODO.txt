@@ -1,0 +1,5 @@
+AscendedSaint:
+
+  Charm mechanic for Healer Saint: Temporarily "tame" creatures (even those otherwise impossible to), preventing them to attack you. Restores original reputation/relationship once the effect wears off.
+
+  Fix mass resurrection with Healer Saint

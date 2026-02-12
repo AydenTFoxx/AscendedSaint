@@ -1,5 +1,6 @@
 ﻿using System.Security.Permissions;
 using AscendedSaint.Attunement;
+using AscendedSaint.Hooks;
 using BepInEx;
 using ModLib;
 using ModLib.Logging;
@@ -33,7 +34,9 @@ public sealed class Main : ModPlugin
     {
         base.ApplyHooks();
 
-        Hooks.ApplyHooks();
+        AscensionHooks.ApplyHooks();
+        HealerHooks.ApplyHooks();
+        CharmHooks.ApplyHooks();
 
         On.GameSession.ctor += GameSessionHook;
         On.RainWorldGame.Update += GameUpdateHook;
@@ -43,7 +46,9 @@ public sealed class Main : ModPlugin
     {
         base.RemoveHooks();
 
-        Hooks.RemoveHooks();
+        AscensionHooks.RemoveHooks();
+        HealerHooks.RemoveHooks();
+        CharmHooks.RemoveHooks();
 
         On.GameSession.ctor -= GameSessionHook;
         On.RainWorldGame.Update -= GameUpdateHook;
