@@ -1,15 +1,11 @@
 # Ascended Saint Changelog
 
-## v2.0.0 | 2026-02-01
+## v2.0.0 | Unreleased
 
 > Started development: 2025-08-14
-> Released: 2026-02-01
+> Released: None
 
 First major refactoring of the codebase; Introduction of ModLib and LogUtils as dependencies. Released `5 months, 18 days, 14 hours, 46 minutes` after the previous version, the longest delay between versions by a large margin.
-
-* TODO
-
-Known introduced bugs:
 
 * TODO
 
